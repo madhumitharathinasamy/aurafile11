@@ -15,10 +15,10 @@ export function Header() {
     return (
         <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
             <div className="container mx-auto flex h-16 max-w-[var(--container-width)] items-center justify-between px-4">
-                <Link href="/" className="flex items-center gap-2 text-xl font-bold text-primary">
-                    <Image src="/favicon.ico" alt="Logo" width={32} height={32} />
-                    <span className="bg-gradient-to-br from-primary to-[#8e1c90] bg-clip-text text-transparent">
-                        {siteConfig.name}
+                <Link href="/" className="flex items-center gap-2 text-xl font-bold">
+                    <Image src="/favicon.ico" alt="Logo" width={48} height={48} className="rounded-md" />
+                    <span className="text-2xl font-bold tracking-tight text-foreground">
+                        Aura<span className="text-[#1791cf]">File</span>
                     </span>
                 </Link>
 

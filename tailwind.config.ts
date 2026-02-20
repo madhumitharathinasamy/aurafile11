@@ -44,6 +44,9 @@ const config: Config = {
                 md: "var(--radius-md)",
                 sm: "var(--radius-sm)",
             },
+            boxShadow: {
+                soft: "0 2px 10px rgba(0, 0, 0, 0.05)",
+            },
         },
     },
     plugins: [],

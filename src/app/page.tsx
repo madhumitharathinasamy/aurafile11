@@ -9,84 +9,139 @@ export default function Home() {
   const { hero, tools, features } = siteConfig.home;
 
   return (
-    <main className="flex min-h-screen flex-col">
+    <main className="flex min-h-screen flex-col animate-fade-in">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-8 md:pt-24 md:pb-12">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(var(--primary-rgb),0.08)_0%,transparent_70%)] opacity-40"></div>
+      <section className="relative overflow-hidden pt-16 pb-12 md:pt-32 md:pb-24">
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,#F8FAFC_0%,#EEF2FF_50%,#F8FAFC_100%)]"></div>
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="mb-6 text-4xl font-extrabold tracking-tight md:text-6xl lg:text-7xl">
-              <span className="bg-gradient-to-br from-primary to-[#8e1c90] bg-clip-text text-transparent">
-                {hero.title}
+          <div className="mx-auto max-w-4xl text-center">
+            {/* Trusted Badge */}
+            <div className="mb-8 inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              <Icon name="shield" size={16} className="mr-2" />
+              {hero.trustedText}
+            </div>
+
+            <h1 className="mb-6 text-foreground">
+              {hero.title.replace("made simple", "")}
+              <span className="bg-gradient-to-r from-[hsl(187,72%,42%)] to-[hsl(200,80%,45%)] bg-clip-text text-transparent">
+                made simple
               </span>
             </h1>
-            <p className="mb-10 text-xl text-muted md:text-2xl leading-relaxed">
+            <p className="mb-10 text-muted max-w-2xl mx-auto">
               {hero.subtitle}
             </p>
-            <div className="flex flex-col justify-center gap-4 sm:flex-row">
-              <Button href="/tools" variant="primary" className="h-12 w-full px-8 text-lg sm:w-auto">
-                {hero.cta}
+
+            <div className="flex flex-col justify-center gap-4 sm:flex-row mb-12">
+              <Button href="/#tools" variant="primary" className="h-14 px-8 text-lg w-full sm:w-auto">
+                {hero.ctaPrimary}
               </Button>
+              <Button href="/#tools" variant="secondary" className="h-14 px-8 text-lg w-full sm:w-auto">
+                {hero.ctaSecondary}
+              </Button>
+            </div>
+
+            {/* Hero Features */}
+            <div className="flex flex-wrap justify-center gap-6 md:gap-12 text-sm font-medium text-text-secondary">
+              {hero.benefits.map((benefit, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Icon name="check" size={18} className="text-primary" />
+                  {benefit}
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
       {/* Tools Section */}
-      <section className="py-16 md:py-24">
+      <section id="tools" className="py-20 md:py-32 bg-background">
         <div className="container mx-auto px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold md:text-4xl text-foreground">
-            Powerful <span className="text-accent">Image Tools</span>
-          </h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {tools.items.map((tool) => (
-              <Card
-                key={tool.title}
-                title={tool.title}
-                description={tool.description}
-                href={tool.href}
-                icon={<Icon name={tool.icon} size={32} color="var(--primary)" />}
-              // We will need to update Card component to accept className or ensure it renders correctly
-              />
-            ))}
+          <div className="text-center mb-16 max-w-2xl mx-auto">
+            <h2 className="mb-4 text-foreground">
+              {tools.title}
+            </h2>
+            <p className="text-muted">
+              {tools.subtitle}
+            </p>
           </div>
-        </div>
-      </section>
 
-      {/* How It Works Section */}
-      <section className="py-12 md:py-16 bg-background">
-        <div className="container mx-auto px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold md:text-4xl text-foreground">How It Works</h2>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            {[
-              { title: "Upload", desc: "Select and upload your image securely.", icon: "upload" },
-              { title: "Process", desc: "Our powerful tools process your files instantly.", icon: "settings" },
-              { title: "Download", desc: "Get your optimized images in seconds.", icon: "download" }
-            ].map((step, i) => (
-              <div key={i} className="flex flex-col items-center text-center p-6 bg-surface/50 rounded-2xl border border-border/50 w-full max-w-full">
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-accent shadow-sm">
-                  <Icon name={step.icon} size={32} />
-                </div>
-                <h3 className="mb-3 text-xl font-bold text-foreground">{step.title}</h3>
-                <p className="text-muted leading-relaxed">{step.desc}</p>
+
+          {/* Image Tools Section */}
+          <div className="mb-20">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon name="image" size={20} />
               </div>
-            ))}
+              <h3 className="text-2xl font-bold text-foreground">Image Tools</h3>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {tools.image.map((tool) => (
+                <Link key={tool.title} href={tool.href} className="group relative flex flex-col rounded-2xl border border-border bg-surface p-6 transition-all hover:shadow-subtle hover:-translate-y-1 hover:border-primary/50">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/5 text-primary group-hover:bg-primary/10 transition-colors">
+                    <Icon name={tool.icon} size={24} />
+                  </div>
+                  <h3 className="mb-2 text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                    {tool.title}
+                  </h3>
+                  <p className="mb-4 text-sm text-muted leading-relaxed flex-grow">
+                    {tool.description}
+                  </p>
+                  <div className="flex items-center text-sm font-semibold text-primary">
+                    Try Now <Icon name="arrow-right" size={14} className="ml-2 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* PDF Tools Section */}
+          <div>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10 text-red-600">
+                <Icon name="file-text" size={20} />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground">PDF Tools</h3>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {tools.pdf.map((tool) => (
+                <Link key={tool.title} href={tool.href} className="group relative flex flex-col rounded-2xl border border-border bg-surface p-6 transition-all hover:shadow-subtle hover:-translate-y-1 hover:border-red-500/50">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/5 text-red-600 group-hover:bg-red-500/10 transition-colors">
+                    <Icon name={tool.icon} size={24} />
+                  </div>
+                  <h3 className="mb-2 text-lg font-bold text-foreground group-hover:text-red-600 transition-colors">
+                    {tool.title}
+                  </h3>
+                  <p className="mb-4 text-sm text-muted leading-relaxed flex-grow">
+                    {tool.description}
+                  </p>
+                  <div className="flex items-center text-sm font-semibold text-red-600">
+                    Try Now <Icon name="arrow-right" size={14} className="ml-2 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 md:py-24 bg-secondary/30 border-t border-border">
+      {/* Features/Benefits Section */}
+      <section className="py-20 md:py-32 bg-secondary/30 border-t border-border">
         <div className="container mx-auto px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold md:text-4xl text-foreground">{features.title}</h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {features.items.map((feature) => (
-              <Card
-                key={feature.title}
-                title={feature.title}
-                description={feature.description}
-                icon={<Icon name={feature.icon as string} size={32} color="var(--accent)" />}
-              />
+          <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
+            {features.items.map((feature, i) => (
+              <div key={i} className="flex flex-col gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white border border-border text-foreground shadow-sm">
+                  <Icon name={feature.icon as string} size={24} />
+                </div>
+                <div>
+                  <h3 className="mb-2 text-lg font-bold text-foreground">{feature.title}</h3>
+                  <p className="text-muted leading-relaxed text-sm">
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
         </div>

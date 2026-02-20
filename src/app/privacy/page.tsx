@@ -6,6 +6,8 @@ export const metadata: Metadata = {
     description: "Aura File Privacy Policy - How we handle your data.",
 };
 
+import { siteConfig } from "@/config/site";
+
 export default function PrivacyPage() {
     return (
         <>
@@ -72,7 +74,7 @@ export default function PrivacyPage() {
                             <span>📫</span> 5. Contact Us
                         </h2>
                         <p className="leading-relaxed text-text-secondary">
-                            If you have questions about this Privacy Policy, please contact us at <a href="mailto:support@aurafile.net" className="text-primary hover:underline">support@aurafile.net</a>.
+                            If you have questions about this Privacy Policy, please contact us at <a href={`mailto:${siteConfig.links.email}`} className="text-primary hover:underline">{siteConfig.links.email}</a>.
                         </p>
                     </section>
                 </div>

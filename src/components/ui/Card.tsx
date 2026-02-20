@@ -1,25 +1,35 @@
 import Link from "next/link";
+import { Icon } from "@/components/ui/Icon";
 
 interface CardProps {
     title: string;
     description: string;
     href?: string;
     icon?: React.ReactNode;
-    className?: string; // Allow overrides
+    className?: string;
 }
 
 export function Card({ title, description, icon, href }: CardProps) {
     const Content = (
-        <div className="flex flex-col h-full">
-            <h3 className="mb-2 flex items-center gap-3 text-lg font-bold text-foreground">
-                {icon && <span className="text-primary">{icon}</span>}
+        <>
+            {icon && (
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/5 text-primary group-hover:bg-primary/10 transition-colors">
+                    {icon}
+                </div>
+            )}
+            <h3 className="mb-2 text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                 {title}
             </h3>
-            <p className="text-muted leading-relaxed">{description}</p>
-        </div>
+            <p className="mb-4 text-sm text-muted leading-relaxed flex-grow">
+                {description}
+            </p>
+            <div className="flex items-center text-sm font-semibold text-primary mt-auto">
+                Try Now <Icon name="arrow-right" size={14} className="ml-2 transition-transform group-hover:translate-x-1" />
+            </div>
+        </>
     );
 
-    const cardClasses = "block p-6 bg-surface rounded-xl border border-border/50 transition-all hover:border-primary/50 hover:shadow-sm w-full max-w-full";
+    const cardClasses = "group relative flex flex-col rounded-2xl border border-border bg-surface p-6 transition-all hover:shadow-subtle hover:-translate-y-1 hover:border-primary/50 h-full";
 
     if (href) {
         return (

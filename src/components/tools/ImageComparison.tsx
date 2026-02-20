@@ -22,6 +22,8 @@ export function ImageComparison({
     const [isDragging, setIsDragging] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const [containerWidth, setContainerWidth] = useState(0);
+
     const handleMove = useCallback(
         (event: MouseEvent | TouchEvent) => {
             if (!containerRef.current) return;
@@ -45,6 +47,23 @@ export function ImageComparison({
 
     const handleMouseDown = () => setIsDragging(true);
     const handleMouseUp = useCallback(() => setIsDragging(false), []);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        // Set initial width
+        setContainerWidth(containerRef.current.offsetWidth);
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                setContainerWidth(entry.contentRect.width);
+            }
+        });
+
+        observer.observe(containerRef.current);
+
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         if (isDragging) {
@@ -76,14 +95,14 @@ export function ImageComparison({
                 className="block w-full h-auto object-contain max-h-[500px]"
                 draggable={false}
             />
-            {/* After Label */}
-            <div className="absolute top-4 right-4 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium z-10 pointer-events-none">
+            {/* After Label (Moved to Top Right) */}
+            <div className="absolute top-4 right-4 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium z-10 pointer-events-none backdrop-blur-sm">
                 {afterLabel}
             </div>
 
             {/* Before Image (Clipped) */}
             <div
-                className="absolute inset-0 h-full overflow-hidden"
+                className="absolute inset-0 h-full overflow-hidden z-20"
                 style={{ width: `${sliderPosition}%` }}
             >
                 <img
@@ -92,28 +111,26 @@ export function ImageComparison({
                     className="block w-full h-full object-contain max-h-[500px]"
                     draggable={false}
                     style={{
-                        // We need to counter-act the width clipping to keep image aspect ratio correct 
-                        // relative to the parent container.
-                        // However, simply setting object-contain on both usually aligns them if they have same aspect ratio.
-                        // But since we are clipping the container, the img inside needs to be the full width of the parent.
-                        // We can solve this by setting width to the parent's width relative to this clipped container.
-                        width: containerRef.current ? containerRef.current.offsetWidth : "100%",
+                        width: containerWidth || "100%",
                         maxWidth: "none"
                     }}
                 />
-                {/* Before Label */}
-                <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium z-10 pointer-events-none">
+                {/* Before Label (Moved to Top Left) */}
+                <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium z-20 pointer-events-none backdrop-blur-sm">
                     {beforeLabel}
                 </div>
             </div>
 
             {/* Slider Handle */}
             <div
-                className="absolute inset-y-0 w-1 bg-white shadow-[0_0_10px_rgba(0,0,0,0.5)] cursor-ew-resize z-20 flex items-center justify-center transform -translate-x-1/2"
+                className="absolute inset-y-0 w-1 bg-white shadow-[0_0_10px_rgba(0,0,0,0.5)] cursor-ew-resize z-30 flex items-center justify-center transform -translate-x-1/2"
                 style={{ left: `${sliderPosition}%` }}
             >
-                <div className="h-8 w-8 rounded-full bg-white shadow-lg flex items-center justify-center text-primary">
-                    <Icon name="compare" size={16} />
+                {/* Invisible larger touch area */}
+                <div className="absolute inset-y-0 -left-4 -right-4 z-30" />
+
+                <div className="h-10 w-10 rounded-full bg-white shadow-lg flex items-center justify-center text-primary relative z-40">
+                    <Icon name="compare" size={20} />
                 </div>
             </div>
         </div>

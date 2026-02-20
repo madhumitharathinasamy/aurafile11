@@ -1,4 +1,5 @@
 import { siteConfig } from "@/config/site";
+import Link from "next/link";
 
 export function Footer() {
     return (
@@ -6,9 +7,9 @@ export function Footer() {
             <div className="container mx-auto flex flex-col items-center gap-6 px-4">
                 <nav className="flex flex-wrap justify-center gap-8">
                     {siteConfig.footer.legal.map((link) => (
-                        <a key={link.href} href={link.href} className="text-sm text-text-secondary transition-colors hover:text-primary hover:underline">
+                        <Link key={link.href} href={link.href} className="text-sm text-text-secondary transition-colors hover:text-primary hover:underline">
                             {link.title}
-                        </a>
+                        </Link>
                     ))}
                 </nav>
                 <p className="text-xs text-muted">{siteConfig.footer.copyright}</p>

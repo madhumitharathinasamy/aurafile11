@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 :root {
-  /* Variables are injected via RootLayout style attribute */
+  /* Custom Gradient from User */
+  --gradient-accent: linear-gradient(135deg, hsl(187 72% 42%) 0%, hsl(200 80% 45%) 100%);
 }
 
 @layer base {
@@ -15,6 +16,26 @@
   body {
     @apply bg-background text-foreground overflow-x-hidden;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1 {
+    @apply text-2xl md:text-4xl font-extrabold tracking-tight;
+  }
+
+  h2 {
+    @apply text-xl md:text-2xl font-bold;
+  }
+
+  h3 {
+    @apply text-lg md:text-xl font-semibold;
+  }
+
+  p {
+    @apply text-sm md:text-base leading-relaxed;
+  }
+
+  small {
+    @apply text-xs md:text-sm;
   }
 }
 
@@ -43,8 +64,10 @@ a {
 }
 
 .btn-primary {
-  background-color: var(--primary);
+  background: var(--gradient-accent);
   color: var(--primary-foreground);
+  box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
+  /* Subtle glow for "slightly gradient" feel */
 }
 
 .btn-secondary {
@@ -67,6 +90,57 @@ a {
   }
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+.animate-fade-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Updated Button Physics per Design System */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.card-hover {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card-hover:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-color: #CBD5E1;
+}
+
 @media (max-width: 768px) {
   :root {
     --section-spacing: 3rem;
@@ -85,4 +159,33 @@ a {
   .page-padding {
     padding-bottom: 3rem;
   }
+}
+
+/* Custom Scrollbar for specific containers */
+.thin-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 20px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* Checkerboard pattern for transparent images */
+.bg-checkerboard {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee),
+    linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee);
+  background-position: 0 0, 10px 10px;
+  background-size: 20px 20px;
 }

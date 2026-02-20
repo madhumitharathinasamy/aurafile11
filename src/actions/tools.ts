@@ -1,42 +1,21 @@
+
 "use server";
 
-import { processResizeImages } from "@/lib/processing/resize";
 import { processCompressImage } from "@/lib/processing/compress";
 
-export async function resizeImageAction(formData: FormData) {
-    try {
-        const file = formData.get("file") as File;
-        const width = parseInt(formData.get("width") as string);
-        const height = parseInt(formData.get("height") as string);
-        // const format = formData.get("format") as "png" | "jpeg" | "webp"; // Future feature
 
-        if (!file || !width || !height) {
-            return { success: false, error: "Missing required fields" };
-        }
 
-        // Convert File to Buffer
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        // Process Image
-        const result = await processResizeImages(buffer, {
-            width,
-            height,
-            format: "jpeg", // Default to jpeg for resize
-        });
-
-        const base64 = `data:image/${result.format};base64,${result.buffer.toString(
-            "base64"
-        )}`;
-
-        return { success: true, daa: base64 };
-    } catch (error) {
-        console.error("Action Error:", error);
-        return { success: false, error: "Failed to process image" };
-    }
+export type CompressActionResult = {
+    success: boolean;
+    data?: string;
+    originalSize?: number;
+    newSize?: number;
+    error?: string;
+    originalPreview?: string;
+    compressedPreview?: string;
 }
 
-export async function compressImageAction(formData: FormData) {
+export async function compressImageAction(formData: FormData): Promise<CompressActionResult> {
     try {
         const file = formData.get("file") as File;
         const quality = parseInt(formData.get("quality") as string);
@@ -59,11 +38,48 @@ export async function compressImageAction(formData: FormData) {
             "base64"
         )}`;
 
+        // Generate Previews for non-web-safe formats (TIFF, etc.)
+        let originalPreview: string | undefined;
+        let compressedPreview: string | undefined;
+
+        const isWebSafeInput = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"].includes(file.type);
+        const isWebSafeOutput = ["jpeg", "png", "webp", "gif", "avif"].includes(result.format);
+
+        if (!isWebSafeInput || !isWebSafeOutput) {
+            console.log(`Generating previews for ${file.name} (Input: ${file.type}, Output: ${result.format})`);
+            // Lazy import sharp to avoid issues if not needed, or just standard import
+            const sharp = require("sharp");
+
+            // If input is not web safe (e.g. TIFF), generate a JPEG preview for "Before" state
+            if (!isWebSafeInput) {
+                try {
+                    const previewBuffer = await sharp(buffer).jpeg({ quality: 70 }).toBuffer();
+                    originalPreview = `data:image/jpeg;base64,${previewBuffer.toString("base64")}`;
+                    console.log("Original preview generated successfully");
+                } catch (e) {
+                    console.error("Failed to generate original preview", e);
+                }
+            }
+
+            // If output is not web safe (e.g. TIFF), generate a JPEG preview for "After" state
+            if (!isWebSafeOutput) {
+                try {
+                    const previewBuffer = await sharp(result.buffer).jpeg({ quality: 70 }).toBuffer();
+                    compressedPreview = `data:image/jpeg;base64,${previewBuffer.toString("base64")}`;
+                    console.log("Compressed preview generated successfully");
+                } catch (e) {
+                    console.error("Failed to generate compressed preview", e);
+                }
+            }
+        }
+
         return {
             success: true,
             data: base64,
             originalSize: file.size,
-            newSize: result.size
+            newSize: result.size,
+            originalPreview,
+            compressedPreview
         };
     } catch (error: any) {
         console.error("Compression Action Error:", error);
@@ -81,8 +97,11 @@ export async function convertImageAction(formData: FormData) {
     try {
         const file = formData.get("file") as File;
         const format = formData.get("format") as string;
-        // Default to high quality for conversion if not specified, though logic essentially treats them same
-        const quality = 90;
+        // Parse quality if provided, otherwise default to 90
+        const qualityRaw = formData.get("quality");
+        const quality = qualityRaw ? parseInt(qualityRaw as string) : 90;
+
+        console.log(`Convert Action Received: Format=${format}, Quality=${quality}`);
 
         if (!file || !format) {
             return { success: false, error: "Missing required fields" };

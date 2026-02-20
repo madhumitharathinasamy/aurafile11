@@ -64,7 +64,7 @@ export function ResizeControls({
 
             <button
                 className={`flex h-[44px] w-full items-center justify-center rounded-md border text-muted transition-all sm:w-[44px] sm:mb-0.5 ${locked
-                    ? "border-primary bg-primary text-white hover:bg-[#5a025b]"
+                    ? "border-primary bg-primary text-white hover:bg-[#1D4ED8]"
                     : "border-border bg-white hover:bg-surface hover:text-foreground"
                     }`}
                 onClick={() => setLocked(!locked)}

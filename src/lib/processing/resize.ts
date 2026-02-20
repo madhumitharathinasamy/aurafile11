@@ -1,30 +1,80 @@
-import sharp from "sharp";
 
-export async function processResizeImages(
-    buffer: Buffer,
-    options: { width: number; height: number; format?: "png" | "jpeg" | "webp" }
-): Promise<{ buffer: Buffer; format: string }> {
-    try {
-        let pipeline = sharp(buffer).resize({
-            width: options.width,
-            height: options.height,
-            fit: "fill", // Force dimensions, ignoring aspect ratio (handled by frontend)
-        });
+/**
+ * Resizes an image using the HTML5 Canvas API.
+ * This runs entirely on the client side.
+ */
 
-        const format = options.format || "jpeg"; // Default to jpeg if not specified
+export interface ResizeOptions {
+    width: number;
+    height: number;
+    maintainAspectRatio: boolean;
+    format: "image/jpeg" | "image/png" | "image/webp";
+    quality: number; // 0 to 1
+    fit?: "fill" | "contain" | "cover";
+    background?: string; // Hex color for padding if contain/cover
+}
 
-        if (format === "png") {
-            pipeline = pipeline.png();
-        } else if (format === "webp") {
-            pipeline = pipeline.webp();
-        } else {
-            pipeline = pipeline.jpeg();
-        }
+export async function resizeImageClient(file: File, options: ResizeOptions): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
 
-        const outputBuffer = await pipeline.toBuffer();
-        return { buffer: outputBuffer, format };
-    } catch (error) {
-        console.error("Resize Error:", error);
-        throw new Error("Failed to process image");
-    }
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            if (!ctx) {
+                reject(new Error("Failed to get canvas context"));
+                return;
+            }
+
+            // Set canvas dimensions
+            canvas.width = options.width;
+            canvas.height = options.height;
+
+            // Background fill
+            if (options.background && options.format !== "image/png") {
+                ctx.fillStyle = options.background;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Calculate draw dimensions (Basic fill for now, can expand for fit modes)
+            // For now, assume 'fill' (stretch) or exact dimensions provided by caller
+            ctx.drawImage(img, 0, 0, options.width, options.height);
+
+            canvas.toBlob(
+                (blob) => {
+                    if (blob) resolve(blob);
+                    else reject(new Error("Canvas toBlob failed"));
+                },
+                options.format,
+                options.quality
+            );
+        };
+
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("Failed to load image"));
+        };
+
+        img.src = url;
+    });
+}
+
+export function calculateAspectRatioFit(
+    srcWidth: number,
+    srcHeight: number,
+    maxWidth?: number,
+    maxHeight?: number
+): { width: number; height: number } {
+    const ratio = Math.min(
+        maxWidth ? maxWidth / srcWidth : Infinity,
+        maxHeight ? maxHeight / srcHeight : Infinity
+    );
+    return {
+        width: Math.round(srcWidth * (ratio === Infinity ? 1 : ratio)),
+        height: Math.round(srcHeight * (ratio === Infinity ? 1 : ratio)),
+    };
 }
