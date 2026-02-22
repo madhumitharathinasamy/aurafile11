@@ -173,63 +173,109 @@ export default function ResizeTool() {
                 activeIndex={activeIndex}
                 setActiveIndex={setActiveIndex}
                 onPrimaryAction={handleProcess}
-                primaryActionText={files.length > 1 ? "Resize All Images" : "Resize Image"}
+                primaryActionText={
+                    <span className="flex items-center justify-center gap-2">
+                        <Icon name="expand" size={18} />
+                        {files.length > 1 ? "Resize All" : "Resize"}
+                    </span>
+                }
                 isProcessing={isProcessing}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
-                    <div className="space-y-6">
-                        <h3 className="text-lg font-semibold border-b border-border pb-3">Resize Settings</h3>
+                    <div className="space-y-8">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 mb-6 font-sans">Resize Image</h2>
 
-                        <div className="flex items-end gap-3 max-w-xl">
-                            <div className="flex-1 space-y-1.5">
-                                <label className="font-medium text-muted-foreground text-xs" htmlFor="width">Width (px)</label>
+                            {/* Dimension comparison box */}
+                            <div className="bg-[#E8ECEF] rounded-xl p-4 flex items-center justify-between shadow-sm">
+                                <div className="flex flex-col">
+                                    <span className="text-xs font-medium text-slate-500 mb-1">Original</span>
+                                    <span className="text-base font-bold text-slate-800">
+                                        {activeFile.file ? `${activeFile.originalWidth || activeFile.settings?.width || '-'}x${activeFile.originalHeight || activeFile.settings?.height || '-'}` : "—"}
+                                    </span>
+                                </div>
+                                <div className="text-slate-500">
+                                    <Icon name="arrow-right" size={16} strokeWidth={2.5} />
+                                </div>
+                                <div className="flex flex-col text-right">
+                                    <span className="text-xs font-medium text-slate-500 mb-1">Resized</span>
+                                    <span className="text-base font-bold text-slate-800">
+                                        {`${activeFile.settings?.width || '-'}x${activeFile.settings?.height || '-'}`}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Dimensions Inputs */}
+                        <div className="flex items-end gap-3 w-full">
+                            <div className="flex-1 space-y-1.5 flex flex-col">
+                                <span className="text-sm font-semibold text-slate-800">Width (px)</span>
                                 <input
                                     type="number"
-                                    id="width"
                                     min="1"
                                     max="10000"
                                     value={activeFile.settings?.width || ""}
                                     onChange={(e) => updateFileSettings(activeFile.id, { width: e.target.value })}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all text-sm"
+                                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0081C9]/50 focus:border-[#0081C9] transition-all"
                                 />
                             </div>
                             <button
                                 onClick={() => updateFileSettings(activeFile.id, { lockAspectRatio: !activeFile.settings?.lockAspectRatio })}
-                                className={`flex items-center justify-center w-10 h-10 rounded-lg border transition-all mb-0.5 shadow-sm ${activeFile.settings?.lockAspectRatio ? "border-primary/50 bg-primary/5 text-primary ring-1 ring-primary/20" : "border-border hover:bg-muted/50 text-muted-foreground"}`}
+                                className={`flex items-center justify-center w-11 h-11 rounded-lg border transition-all shadow-sm shrink-0 ${activeFile.settings?.lockAspectRatio ? "border-[#0081C9]/50 bg-[#0081C9]/5 text-[#0081C9] ring-1 ring-[#0081C9]/20" : "border-slate-300 hover:bg-slate-50 text-slate-400"}`}
                                 title={activeFile.settings?.lockAspectRatio ? "Unlock aspect ratio" : "Lock aspect ratio"}
                             >
-                                <Icon name={activeFile.settings?.lockAspectRatio ? "lock" : "unlock"} size={16} />
+                                <Icon name={activeFile.settings?.lockAspectRatio ? "lock" : "unlock"} size={18} />
                             </button>
-                            <div className="flex-1 space-y-1.5">
-                                <label className="font-medium text-muted-foreground text-xs" htmlFor="height">Height (px)</label>
+                            <div className="flex-1 space-y-1.5 flex flex-col">
+                                <span className="text-sm font-semibold text-slate-800">Height (px)</span>
                                 <input
                                     type="number"
-                                    id="height"
                                     min="1"
                                     max="10000"
                                     value={activeFile.settings?.height || ""}
                                     onChange={(e) => updateFileSettings(activeFile.id, { height: e.target.value })}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all text-sm"
+                                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0081C9]/50 focus:border-[#0081C9] transition-all"
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="font-medium text-muted-foreground text-xs">Maintain Quality</label>
-                            <div className="flex items-center gap-4 border border-border p-3 rounded-xl bg-background shadow-sm">
+                        {/* Quality Slider exactly matching mockup */}
+                        <div>
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="text-sm font-semibold text-slate-800">Quality</span>
+                                <span className="text-sm font-semibold text-slate-800">{activeFile.settings?.quality || 90}%</span>
+                            </div>
+
+                            <div className="relative w-full h-2 rounded-full cursor-pointer bg-slate-700">
+                                {/* The filled portion */}
+                                <div
+                                    className="absolute top-0 left-0 h-full bg-[#0081C9] rounded-l-full pointer-events-none"
+                                    style={{ width: `${activeFile.settings?.quality || 90}%` }}
+                                ></div>
+
                                 <input
                                     type="range"
                                     min="1"
                                     max="100"
-                                    className="w-full accent-primary"
                                     value={activeFile.settings?.quality || 90}
-                                    onChange={(e) => updateFileSettings(activeFile.id, { quality: Number(e.target.value) })}
+                                    onChange={(e) => updateFileSettings(activeFile.id, { quality: parseInt(e.target.value) })}
+                                    className="absolute top-0 left-0 w-full opacity-0 cursor-pointer z-10 h-full"
+                                    style={{ appearance: 'none', WebkitAppearance: 'none' }}
                                 />
-                                <span className="font-semibold text-primary min-w-[3rem] text-right">{activeFile.settings?.quality || 90}%</span>
+
+                                {/* Custom Thumb visually tracking the input */}
+                                <div
+                                    className="absolute top-1/2 -translate-y-1/2 h-5 w-5 bg-white rounded-full border-2 border-[#0081C9] shadow-sm pointer-events-none z-0 mt-[1px]"
+                                    style={{ left: `calc(${activeFile.settings?.quality || 90}% - 10px)` }}
+                                ></div>
+                            </div>
+
+                            <div className="flex justify-between items-center mt-3 text-xs font-medium text-slate-500 font-sans tracking-tight">
+                                <span>Smaller file</span>
+                                <span>Higher quality</span>
                             </div>
                         </div>
-
                     </div>
                 )}
             </ToolModal>
