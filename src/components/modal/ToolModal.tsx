@@ -14,6 +14,7 @@ interface ToolModalProps {
     primaryActionText: React.ReactNode;
     isProcessing?: boolean;
     children: React.ReactNode; // Sidebar settings content
+    customPreview?: React.ReactNode; // Optional override for the Left Stage image preview
 }
 
 export function ToolModal({
@@ -26,7 +27,8 @@ export function ToolModal({
     onPrimaryAction,
     primaryActionText,
     isProcessing = false,
-    children
+    children,
+    customPreview
 }: ToolModalProps) {
     const [mounted, setMounted] = useState(false);
 
@@ -61,67 +63,127 @@ export function ToolModal({
     };
 
     const modalContent = (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 md:p-6">
-            <div className="flex flex-col w-full h-full md:h-[600px] md:max-h-[85vh] md:max-w-[1000px] md:rounded-xl overflow-hidden bg-white shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 sm:p-6 overflow-hidden">
+            <div className="flex flex-col w-full h-[85vh] sm:h-[500px] sm:max-h-[80vh] md:max-w-[1000px] rounded-xl overflow-hidden bg-white shadow-2xl relative">
 
                 {/* Universal Top Header */}
-                <div className="flex items-center justify-between p-4 px-6 border-b border-border bg-white shrink-0 z-20">
-                    <h2 className="text-base font-bold text-slate-800">{title}</h2>
-                    <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
-                        <Icon name="x" size={20} />
-                    </button>
+                <div className="flex flex-col p-4 md:px-6 border-b border-border bg-white shrink-0 z-20 gap-3">
+                    {/* Top Row: Title, Counter & Close Button (and Desktop Toggle) */}
+                    <div className="flex flex-row items-center justify-between w-full min-w-0">
+                        {/* Left Side: Title & Pagination */}
+                        <div className="flex items-center gap-3 min-w-0">
+                            <h2 className="text-base md:text-lg font-semibold text-slate-800 truncate">{title}</h2>
+                            {/* Page Indicator */}
+                            {isBatch && (
+                                <div className="flex items-center gap-1 text-sm md:text-base font-medium text-slate-500 tabular-nums shrink-0">
+                                    <span>{activeIndex + 1}</span>
+                                    <span className="text-slate-300">/</span>
+                                    <span>{files.length}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Side: Desktop Toggle & Close X */}
+                        <div className="flex items-center gap-3 shrink-0 pl-3">
+                            {/* Desktop Single/Batch Toggle */}
+                            {isBatch && (
+                                <div className="hidden sm:flex items-center bg-[#F1F5F9] p-1 rounded-lg">
+                                    <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-white text-slate-800 shadow-sm border border-slate-200">
+                                        <Icon name="image" size={16} className="text-slate-600" /> Single
+                                    </button>
+                                    <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-800 transition-colors">
+                                        <Icon name="layers" size={16} /> Batch
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Close Button */}
+                            <button onClick={onClose} className="p-1 -mr-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0 flex items-center justify-center">
+                                <Icon name="x" size={22} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Mobile Single/Batch Toggle (Second Row on Mobile) */}
+                    {isBatch && (
+                        <div className="flex sm:hidden items-center bg-[#F1F5F9] p-1 rounded-lg self-start">
+                            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-white text-slate-800 shadow-sm border border-slate-200">
+                                <Icon name="image" size={16} className="text-slate-600" /> Single
+                            </button>
+                            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md text-slate-500 hover:text-slate-800 transition-colors">
+                                <Icon name="layers" size={16} /> Batch
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
                     {/* Left Stage: 55% Fixed Content */}
-                    <div className="w-full md:w-[55%] h-[40vh] md:h-full bg-[#E8ECEF] relative flex flex-col border-b md:border-b-0 md:border-r border-border">
+                    <div className="w-full md:w-[55%] h-[40%] md:h-full bg-[#E8ECEF] relative flex flex-col border-b md:border-b-0 md:border-r border-border">
                         {/* Main Preview Center Stage */}
-                        <div className="flex-1 relative p-4 md:p-8 flex items-center justify-center overflow-hidden min-h-0">
-                            {activeFile?.previewUrl ? (
-                                <img
-                                    src={activeFile.previewUrl}
-                                    alt="Preview"
-                                    className="w-full h-full object-contain pointer-events-none drop-shadow-sm"
-                                />
+                        <div className="flex-1 relative p-4 md:p-0 flex items-center justify-center overflow-hidden min-h-0 group">
+
+                            {/* Floating Navigation Arrows */}
+                            {isBatch && (
+                                <>
+                                    <button
+                                        onClick={handlePrevious}
+                                        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm shadow-md border border-border/50 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 z-30 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
+                                    >
+                                        <Icon name="chevron-left" size={24} />
+                                    </button>
+                                    <button
+                                        onClick={handleNext}
+                                        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm shadow-md border border-border/50 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 z-30 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
+                                    >
+                                        <Icon name="chevron-right" size={24} />
+                                    </button>
+                                </>
+                            )}
+
+                            {customPreview ? (
+                                customPreview
+                            ) : activeFile?.previewUrl ? (
+                                <div className="w-full h-full p-4 md:p-8 flex items-center justify-center">
+                                    <img
+                                        src={activeFile.previewUrl}
+                                        alt="Preview"
+                                        className="max-w-full max-h-full object-contain pointer-events-none drop-shadow-sm"
+                                    />
+                                </div>
                             ) : (
-                                <div className="flex flex-col items-center justify-center text-muted-foreground h-full border-2 border-dashed border-border/50 rounded-xl w-full">
-                                    <Icon name="image" size={48} className="mb-4 opacity-20" />
-                                    <p>No preview available</p>
+                                <div className="w-full h-full p-4 md:p-8 flex items-center justify-center">
+                                    <div className="flex flex-col items-center justify-center text-muted-foreground h-full border-2 border-dashed border-border/50 rounded-xl w-full">
+                                        <Icon name="image" size={48} className="mb-4 opacity-20" />
+                                        <p>No preview available</p>
+                                    </div>
                                 </div>
                             )}
                         </div>
 
                         {/* AuraFile Carousel (Thumbnail Strip) */}
                         {isBatch && (
-                            <div className="h-20 bg-white/50 border-t border-border/10 p-2 shrink-0 flex items-center">
-                                <button onClick={handlePrevious} className="h-full px-2 text-slate-400 hover:text-slate-700 transition-colors shrink-0 outline-none">
-                                    <Icon name="chevron-left" size={20} />
-                                </button>
-
-                                <div className="flex-1 flex gap-2 md:gap-3 overflow-x-auto hide-scrollbar px-2 snap-x snap-mandatory h-full pb-1 items-center justify-center">
+                            <div className="hidden md:flex h-20 bg-white/50 border-t border-border/10 p-2 shrink-0 items-center justify-center">
+                                <div className="flex gap-2 md:gap-3 overflow-x-auto hide-scrollbar px-2 snap-x snap-mandatory h-full pb-1 items-center justify-start md:justify-center max-w-full">
                                     {files.map((file, idx) => {
                                         const isActive = idx === activeIndex;
                                         return (
                                             <button
                                                 key={file.id}
                                                 onClick={() => setActiveIndex(idx)}
-                                                className={`relative h-12 w-12 rounded-lg overflow-hidden shrink-0 snap-start transition-all ${isActive ? 'ring-2 ring-primary ring-offset-1 scale-95 shadow-sm' : 'opacity-50 hover:opacity-100 hover:scale-95'}`}
+                                                className={`relative h-12 w-12 aspect-square rounded-lg overflow-hidden shrink-0 snap-start transition-all bg-white border border-border/50 ${isActive ? 'ring-2 ring-primary ring-offset-1 scale-95 shadow-sm' : 'opacity-60 hover:opacity-100 hover:scale-95'}`}
                                             >
                                                 <img src={file.previewUrl} alt="thumb" className="w-full h-full object-cover" />
                                             </button>
                                         );
                                     })}
                                 </div>
-
-                                <button onClick={handleNext} className="h-full px-2 text-slate-400 hover:text-slate-700 transition-colors shrink-0 outline-none">
-                                    <Icon name="chevron-right" size={20} />
-                                </button>
                             </div>
                         )}
                     </div>
 
                     {/* Right Sidebar: 45% Scrollable */}
-                    <div className="w-full md:w-[45%] h-full flex flex-col bg-white">
+                    <div className="w-full flex-1 min-h-0 md:h-full md:w-[45%] flex flex-col bg-white overflow-hidden">
 
                         {/* Scrollable Tool Options */}
                         <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">

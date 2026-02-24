@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ImageUploader } from "@/components/tools/ImageUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
+import { ImageComparison } from "@/components/tools/ImageComparison";
 import { Icon } from "@/components/ui/Icon";
 import { compressImageAction } from "@/actions/tools";
 import { toast } from "sonner";
@@ -84,7 +85,7 @@ export default function CompressTool() {
             {files.length === 0 && (
                 <div className="mt-6 w-full max-w-7xl mx-auto">
                     <div className="rounded-2xl border border-border bg-surface shadow-xl p-4 md:p-8 backdrop-blur-sm">
-                        <ImageUploader onUpload={handleUpload} multiple={false} />
+                        <ImageUploader onUpload={handleUpload} />
                     </div>
                 </div>
             )}
@@ -104,6 +105,16 @@ export default function CompressTool() {
                     </span>
                 }
                 isProcessing={isProcessing}
+                customPreview={
+                    activeFile?.settings.isCompressed && activeFile.settings.compressedUrl ? (
+                        <div className="w-full h-full flex items-center justify-center p-4">
+                            <ImageComparison
+                                beforeImage={activeFile.previewUrl}
+                                afterImage={activeFile.settings.compressedUrl}
+                            />
+                        </div>
+                    ) : undefined
+                }
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
@@ -134,7 +145,7 @@ export default function CompressTool() {
                         {/* Quality Slider exactly matching mockup */}
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <span className="text-sm font-semibold text-slate-800">Quality</span>
+                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Quality</label>
                                 <span className="text-sm font-semibold text-slate-800">{activeFile.settings.quality}%</span>
                             </div>
 

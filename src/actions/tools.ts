@@ -97,11 +97,11 @@ export async function convertImageAction(formData: FormData) {
     try {
         const file = formData.get("file") as File;
         const format = formData.get("format") as string;
-        // Parse quality if provided, otherwise default to 90
         const qualityRaw = formData.get("quality");
         const quality = qualityRaw ? parseInt(qualityRaw as string) : 90;
+        const backgroundColor = formData.get("backgroundColor") as string | undefined;
 
-        console.log(`Convert Action Received: Format=${format}, Quality=${quality}`);
+        console.log(`Convert Action Received: Format=${format}, Quality=${quality}, Background=${backgroundColor || 'transparent'}`);
 
         if (!file || !format) {
             return { success: false, error: "Missing required fields" };
@@ -114,8 +114,8 @@ export async function convertImageAction(formData: FormData) {
             throw new Error(`Upload truncated! Received ${buffer.length} of ${file.size} bytes.`);
         }
 
-        // Reuse compression logic which handles format conversion
-        const result = await processCompressImage(buffer, quality, file.type, format);
+        // Reuse compression logic which handles format conversion and background flattening
+        const result = await processCompressImage(buffer, quality, file.type, format, backgroundColor);
 
         const base64 = `data:image/${result.format};base64,${result.buffer.toString(
             "base64"

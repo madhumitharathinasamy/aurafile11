@@ -3,6 +3,7 @@
 import { useDropzone } from "react-dropzone";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
+import { UPLOAD_LIMITS } from "@/config/limits";
 
 interface ImageUploaderProps {
     onUpload: (files: File[]) => void;
@@ -17,12 +18,12 @@ interface ImageUploaderProps {
 
 export function ImageUploader({
     onUpload,
-    multiple = false,
-    title = "Drag & drop an image here, or click to select",
+    multiple = true,
+    title = "Drag & drop images here, or click to select",
     description = "Supports JPG, PNG, WEBP, GIF, TIFF, AVIF, BMP",
-    subDescription = "(Max 10 files, 25MB)",
-    maxSize = 25 * 1024 * 1024, // Default 25MB
-    maxFiles = 10, // Default 10
+    subDescription = `(Max ${UPLOAD_LIMITS.MAX_FILES} files, ${UPLOAD_LIMITS.MAX_FILE_SIZE_MB}MB)`,
+    maxSize = UPLOAD_LIMITS.MAX_FILE_SIZE_BYTES,
+    maxFiles = UPLOAD_LIMITS.MAX_FILES,
     accept = {
         "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif", ".tiff", ".avif", ".bmp"],
     }
@@ -70,7 +71,7 @@ export function ImageUploader({
                     </p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    Supports JPG, PNG, WEBP, GIF • Max {Math.round(maxSize / (1024 * 1024))}MB • {multiple ? "Multiple files" : "Single file"} supported
+                    Supports JPG, PNG, WEBP, GIF • Max {Math.round(maxSize / (1024 * 1024))}MB • Up to {maxFiles} files
                 </p>
             </div>
         </div>

@@ -27,7 +27,7 @@ export function useFileUpload(initialFiles: IntegratedFile[] = []) {
 
     const addFiles = useCallback((newRawFiles: File[], defaultSettings: any = {}) => {
         const newIntegratedFiles: IntegratedFile[] = newRawFiles.map(file => ({
-            id: crypto.randomUUID(),
+            id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
             file,
             previewUrl: URL.createObjectURL(file),
             format: file.type.split('/')[1] || 'unknown',

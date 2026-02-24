@@ -23,6 +23,8 @@ import {
     ArrowRight,
     ArrowUp,
     ArrowDown,
+    ChevronLeft,
+    ChevronRight,
     X,
     UploadCloud,
     Sliders,
@@ -78,6 +80,8 @@ export type IconName =
     | "arrow-right"
     | "arrow-up"
     | "arrow-down"
+    | "chevron-left"
+    | "chevron-right"
     | "x"
     | "upload-cloud"
     | "sliders"
@@ -132,6 +136,8 @@ const icons: Record<IconName, React.FC<LucideProps>> = {
     "arrow-right": ArrowRight,
     "arrow-up": ArrowUp,
     "arrow-down": ArrowDown,
+    "chevron-left": ChevronLeft,
+    "chevron-right": ChevronRight,
     x: X,
     "upload-cloud": UploadCloud,
     sliders: Sliders,

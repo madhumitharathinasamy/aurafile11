@@ -4,7 +4,8 @@ export async function processCompressImage(
     buffer: Buffer,
     quality: number,
     originalFormat: string,
-    targetFormat?: string
+    targetFormat?: string,
+    backgroundColor?: string
 ): Promise<{ buffer: Buffer; format: string; size: number }> {
     try {
         // Only enable animation for formats that support it to prevent issues with BMP/JPEG
@@ -58,6 +59,10 @@ export async function processCompressImage(
         } else {
             // JPEG / JPG
             format = "jpeg";
+            if (backgroundColor) {
+                // Flatten transparent images onto the chosen background color before JPEG compression
+                pipeline = pipeline.flatten({ background: backgroundColor });
+            }
             pipeline = pipeline.jpeg({ quality: quality, mozjpeg: true });
         }
 

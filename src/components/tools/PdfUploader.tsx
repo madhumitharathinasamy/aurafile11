@@ -3,13 +3,14 @@
 import { useDropzone } from "react-dropzone";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
+import { UPLOAD_LIMITS } from "@/config/limits";
 
 interface PdfUploaderProps {
     onUpload: (files: File[]) => void;
     maxFiles?: number;
 }
 
-export function PdfUploader({ onUpload, maxFiles = 1 }: PdfUploaderProps) {
+export function PdfUploader({ onUpload, maxFiles = UPLOAD_LIMITS.MAX_FILES }: PdfUploaderProps) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => {
             if (acceptedFiles?.length > 0) {
@@ -20,11 +21,11 @@ export function PdfUploader({ onUpload, maxFiles = 1 }: PdfUploaderProps) {
             "application/pdf": [".pdf"],
         },
         maxFiles: maxFiles,
-        maxSize: 50 * 1024 * 1024, // 50MB
+        maxSize: UPLOAD_LIMITS.MAX_FILE_SIZE_BYTES,
         onDropRejected: (rejectedFiles) => {
             const error = rejectedFiles[0]?.errors[0];
             if (error?.code === "file-too-large") {
-                toast.error("File is too large. Max size is 50MB.");
+                toast.error(`File is too large. Max size is ${UPLOAD_LIMITS.MAX_FILE_SIZE_MB}MB.`);
             } else if (error?.code === "file-invalid-type") {
                 toast.error("Invalid file type. Please upload a PDF file.");
             } else {
@@ -46,12 +47,12 @@ export function PdfUploader({ onUpload, maxFiles = 1 }: PdfUploaderProps) {
                 <div className="mb-2 rounded-full bg-red-50 p-4 shadow-sm dark:bg-red-900/20">
                     <Icon name="file-text" size={48} className="text-red-600" />
                 </div>
-                <p className="text-lg font-medium text-foreground">
+                <p className="text-base font-medium text-foreground">
                     {isDragActive
                         ? "Drop the PDF here..."
-                        : "Drag & drop a PDF here, or click to select"}
+                        : "Drag & drop PDF files here, or click to select"}
                 </p>
-                <p className="text-sm text-muted">Supports PDF (Max 50MB)</p>
+                <p className="text-xs text-muted-foreground">Supports up to {maxFiles} PDFs (Max {UPLOAD_LIMITS.MAX_FILE_SIZE_MB}MB)</p>
             </div>
         </div>
     );

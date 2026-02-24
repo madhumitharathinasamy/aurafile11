@@ -35,7 +35,7 @@ export default function ImageToPdfTool() {
             {files.length === 0 && (
                 <div className="mt-6 w-full max-w-7xl mx-auto">
                     <div className="rounded-2xl border border-border bg-surface shadow-xl p-4 md:p-8 backdrop-blur-sm">
-                        <ImageUploader onUpload={handleUpload} multiple={true} />
+                        <ImageUploader onUpload={handleUpload} />
                     </div>
                 </div>
             )}
@@ -48,38 +48,59 @@ export default function ImageToPdfTool() {
                 activeIndex={activeIndex}
                 setActiveIndex={setActiveIndex}
                 onPrimaryAction={handleProcess}
-                primaryActionText="Generate PDF"
+                primaryActionText={
+                    <span className="flex items-center justify-center gap-2">
+                        <Icon name="file-plus" size={18} />
+                        Generate PDF
+                    </span>
+                }
                 isProcessing={isProcessing}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
-                    <div className="space-y-6">
-                        <div className="bg-card w-full rounded-xl border border-border p-6 shadow-sm overflow-hidden flex flex-col items-center justify-center">
-                            <Icon name="file-text" size={48} className="text-muted-foreground/50 mb-4" />
-                            <h3 className="text-lg font-medium">PDF Settings</h3>
-                            <p className="text-muted-foreground mb-6 text-sm text-center mt-2">
-                                You have uploaded {files.length} images. Adjust margins and page size below.
-                            </p>
+                    <div className="space-y-8">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 mb-6 font-sans">Image to PDF</h2>
+
+                            {/* Stats Info Box */}
+                            <div className="bg-[#E8ECEF] rounded-xl p-4 flex flex-col gap-3 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white p-2 rounded-lg shadow-sm">
+                                        <Icon name="file-text" size={24} className="text-[#0081C9]" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-slate-800 truncate text-sm">Batch of {files.length} Images</p>
+                                        <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                                            Ready for conversion
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Placeholder controls matching the mockup aesthetic */}
+                        {/* PDF Settings */}
                         <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Page Size</label>
-                                <select className="w-full h-10 px-3 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none">
-                                    <option>A4 (Portrait)</option>
-                                    <option>A4 (Landscape)</option>
-                                    <option>US Letter</option>
-                                </select>
-                            </div>
+                            <h3 className="text-sm font-semibold text-slate-800">PDF Options</h3>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Margin</label>
-                                <select className="w-full h-10 px-3 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none">
-                                    <option>None</option>
-                                    <option>Small</option>
-                                    <option>Large</option>
-                                </select>
+                            {/* Custom Select Formats mapped to the style */}
+                            <div className="space-y-4">
+                                <div className="bg-[#E8ECEF] p-3 rounded-xl border border-transparent focus-within:border-[#0081C9] focus-within:bg-white transition-all space-y-1">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Page Size</label>
+                                    <select className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer">
+                                        <option value="a4-p">A4 (Portrait)</option>
+                                        <option value="a4-l">A4 (Landscape)</option>
+                                        <option value="us-letter">US Letter</option>
+                                    </select>
+                                </div>
+
+                                <div className="bg-[#E8ECEF] p-3 rounded-xl border border-transparent focus-within:border-[#0081C9] focus-within:bg-white transition-all space-y-1">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Margin</label>
+                                    <select className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer">
+                                        <option value="none">None (0px)</option>
+                                        <option value="small">Small (10px)</option>
+                                        <option value="large">Large (24px)</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>

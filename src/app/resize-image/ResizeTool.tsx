@@ -155,12 +155,40 @@ export default function ResizeTool() {
         }
     };
 
+    const customPreview = activeFile ? (
+        <div className="w-full h-full p-4 md:p-8 flex items-center justify-center relative">
+            {/* Checkerboard background to show bounds of the forced aspect ratio */}
+            <div
+                className="relative flex items-center justify-center max-w-full max-h-full shadow-md drop-shadow-sm border border-slate-200 bg-[linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa),linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa)] bg-white bg-[length:20px_20px] bg-[position:0_0,10px_10px]"
+                style={{
+                    aspectRatio: activeFile.settings?.width && activeFile.settings?.height
+                        ? `${activeFile.settings.width} / ${activeFile.settings.height}`
+                        : undefined
+                }}
+            >
+                <img
+                    src={activeFile.previewUrl}
+                    alt="Live Preview"
+                    className="w-full h-full pointer-events-none"
+                    style={{
+                        objectFit: activeFile.settings?.width && activeFile.settings?.height ? 'fill' : 'contain'
+                    }}
+                />
+            </div>
+
+            {/* Floating overlay to signify it's a live preview */}
+            <div className="absolute bottom-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm text-[10px] font-bold uppercase tracking-wider text-[#0081C9] flex items-center gap-1.5 z-10">
+                <Icon name="eye" size={14} /> Live Preview
+            </div>
+        </div>
+    ) : null;
+
     return (
         <div className="w-full space-y-8">
             {files.length === 0 && (
                 <div className="mt-6 w-full max-w-7xl mx-auto">
                     <div className="rounded-2xl border border-border bg-surface shadow-xl shadow-primary/5 p-4 md:p-8 backdrop-blur-sm">
-                        <ImageUploader onUpload={handleUpload} multiple={true} />
+                        <ImageUploader onUpload={handleUpload} />
                     </div>
                 </div>
             )}
@@ -180,6 +208,7 @@ export default function ResizeTool() {
                     </span>
                 }
                 isProcessing={isProcessing}
+                customPreview={customPreview}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
@@ -210,7 +239,7 @@ export default function ResizeTool() {
                         {/* Dimensions Inputs */}
                         <div className="flex items-end gap-3 w-full">
                             <div className="flex-1 space-y-1.5 flex flex-col">
-                                <span className="text-sm font-semibold text-slate-800">Width (px)</span>
+                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Width (px)</label>
                                 <input
                                     type="number"
                                     min="1"
@@ -228,7 +257,7 @@ export default function ResizeTool() {
                                 <Icon name={activeFile.settings?.lockAspectRatio ? "lock" : "unlock"} size={18} />
                             </button>
                             <div className="flex-1 space-y-1.5 flex flex-col">
-                                <span className="text-sm font-semibold text-slate-800">Height (px)</span>
+                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Height (px)</label>
                                 <input
                                     type="number"
                                     min="1"
@@ -243,7 +272,7 @@ export default function ResizeTool() {
                         {/* Quality Slider exactly matching mockup */}
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <span className="text-sm font-semibold text-slate-800">Quality</span>
+                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Quality</label>
                                 <span className="text-sm font-semibold text-slate-800">{activeFile.settings?.quality || 90}%</span>
                             </div>
 

@@ -128,7 +128,7 @@ export default function PdfToWordTool() {
             {files.length === 0 && (
                 <div className="mt-6 w-full max-w-7xl mx-auto">
                     <div className="bg-card rounded-2xl shadow-xl shadow-primary/5 border border-border/50 p-2 md:p-4">
-                        <PdfUploader onUpload={handleUpload} maxFiles={5} />
+                        <PdfUploader onUpload={handleUpload} />
                     </div>
                 </div>
             )}
@@ -141,79 +141,85 @@ export default function PdfToWordTool() {
                 activeIndex={activeIndex}
                 setActiveIndex={setActiveIndex}
                 onPrimaryAction={handleConvert}
-                primaryActionText={files.length > 1 ? "Convert All PDFs" : "Convert to Word"}
+                primaryActionText={
+                    <span className="flex items-center justify-center gap-2">
+                        <Icon name="file-text" size={18} />
+                        {files.length > 1 ? "Convert All PDFs" : "Convert to Word"}
+                    </span>
+                }
                 isProcessing={isConverting}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 mb-6 font-sans">Convert to Word</h2>
 
-                        {/* Active File Status Block */}
-                        <div className="p-4 bg-muted/30 rounded-xl border border-border/50 space-y-3">
-                            <div className="flex items-center gap-3">
-                                <Icon name="file-text" size={24} className="text-primary" />
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate text-sm">{activeFile.file.name}</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                        {(activeFile.file.size / 1024 / 1024).toFixed(2)} MB
-                                        {activeFile.settings?.pageCount > 0 && ` • ${activeFile.settings.pageCount} Pages`}
-                                    </p>
+                            {/* File Info Box */}
+                            <div className="bg-[#E8ECEF] rounded-xl p-4 flex flex-col gap-3 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white p-2 rounded-lg shadow-sm">
+                                        <Icon name="file-text" size={24} className="text-[#0081C9]" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-slate-800 truncate text-sm">{activeFile.file.name}</p>
+                                        <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                                            {(activeFile.file.size / 1024 / 1024).toFixed(2)} MB
+                                            {activeFile.settings?.pageCount > 0 && ` • ${activeFile.settings.pageCount} Pages`}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between text-xs font-semibold pt-3 border-t border-slate-300">
+                                    <span className="text-slate-500 uppercase tracking-wider text-[10px]">Status</span>
+                                    <span className={
+                                        activeFile.settings?.status === 'complete' ? 'text-green-600' :
+                                            activeFile.settings?.status === 'error' ? 'text-red-600' :
+                                                activeFile.settings?.status === 'converting' ? 'text-yellow-600 animate-pulse' :
+                                                    'text-[#0081C9]'
+                                    }>
+                                        {getStatusText(activeFile.settings)}
+                                    </span>
                                 </div>
                             </div>
-
-                            <div className="flex items-center justify-between text-xs font-medium pt-2 border-t border-border/50">
-                                <span className="text-muted-foreground">Status:</span>
-                                <span className={
-                                    activeFile.settings?.status === 'complete' ? 'text-green-600' :
-                                        activeFile.settings?.status === 'error' ? 'text-red-600' :
-                                            activeFile.settings?.status === 'converting' ? 'text-yellow-600 animate-pulse' :
-                                                'text-primary'
-                                }>
-                                    {getStatusText(activeFile.settings)}
-                                </span>
-                            </div>
-
-                            {activeFile.settings?.status === 'complete' && activeFile.settings?.resultUrl && (
-                                <a href={activeFile.settings.resultUrl} download={`${activeFile.file.name.replace('.pdf', '')}.docx`}>
-                                    <button className="w-full mt-3 flex items-center justify-center gap-2 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-sm">
-                                        <Icon name="download" size={16} /> Download DOCX
-                                    </button>
-                                </a>
-                            )}
                         </div>
 
-                        {/* Global Settings */}
-                        <div>
-                            <h3 className="font-semibold text-lg flex items-center gap-2 mb-4 pt-2">
-                                <Icon name="settings" size={18} className="text-primary" />
-                                Conversion Settings
-                            </h3>
+                        {activeFile.settings?.status === 'complete' && activeFile.settings?.resultUrl && (
+                            <a href={activeFile.settings.resultUrl} download={`${activeFile.file.name.replace('.pdf', '')}.docx`}>
+                                <button className="w-full flex items-center justify-center gap-2 h-12 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-md shadow-green-600/20">
+                                    <Icon name="download" size={18} /> Download DOCX
+                                </button>
+                            </a>
+                        )}
 
-                            <div className="space-y-6">
-                                {/* OCR Toggle */}
-                                <div className="flex items-start justify-between gap-4 p-3 bg-card border border-border rounded-xl shadow-sm">
+                        {/* Conversion Settings */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-semibold text-slate-800">Conversion Options</h3>
+
+                            <div className="space-y-3">
+                                {/* OCR Toggle styled like Apple switches */}
+                                <div className="flex items-center justify-between p-3.5 bg-white border border-slate-300 rounded-xl shadow-sm">
                                     <div className="space-y-0.5">
-                                        <label className="text-sm font-medium text-foreground">OCR Mode</label>
-                                        <p className="text-[11px] text-muted-foreground">Force text recognition for scanned PDFs</p>
+                                        <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">OCR Mode</label>
+                                        <p className="text-xs text-slate-500 font-medium">Force text recognition on scanned PDFs</p>
                                     </div>
                                     <button
                                         onClick={() => setUseOcr(!useOcr)}
                                         type="button"
-                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${useOcr ? 'bg-primary' : 'bg-input'}`}
+                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${useOcr ? 'bg-[#0081C9]' : 'bg-slate-300'}`}
                                     >
-                                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out ${useOcr ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${useOcr ? 'translate-x-5' : 'translate-x-0'}`} />
                                     </button>
                                 </div>
 
-                                {/* Output Format */}
+                                {/* Output Format Toggle Map */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-medium text-muted-foreground block uppercase tracking-wider">Output Format</label>
+                                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Output Format</label>
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             onClick={() => setOutputFormat('docx')}
-                                            className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${outputFormat === 'docx'
-                                                ? "bg-primary/10 text-primary border-primary shadow-sm"
-                                                : "bg-surface border-border hover:border-primary/50"
+                                            className={`h-11 rounded-lg text-sm font-semibold border transition-all ${outputFormat === 'docx'
+                                                ? "bg-[#0081C9]/5 text-[#0081C9] border-[#0081C9]/50 ring-1 ring-[#0081C9]/20 shadow-sm"
+                                                : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
                                                 }`}
                                         >
                                             DOCX (Word)
@@ -221,7 +227,7 @@ export default function PdfToWordTool() {
                                         <button
                                             onClick={() => setOutputFormat('txt')}
                                             disabled
-                                            className="px-3 py-2.5 rounded-lg text-sm font-medium border border-border bg-secondary/50 text-muted-foreground cursor-not-allowed opacity-70"
+                                            className="h-11 rounded-lg text-sm font-semibold border border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed opacity-70"
                                         >
                                             TXT (Soon)
                                         </button>

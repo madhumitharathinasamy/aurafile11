@@ -21,13 +21,13 @@ export default function Home() {
               {hero.trustedText}
             </div>
 
-            <h1 className="mb-6 text-foreground">
+            <h1 className="mb-6 text-xl md:text-2xl font-bold tracking-tight text-foreground">
               {hero.title.replace("made simple", "")}
               <span className="bg-gradient-to-r from-[hsl(187,72%,42%)] to-[hsl(200,80%,45%)] bg-clip-text text-transparent">
                 made simple
               </span>
             </h1>
-            <p className="mb-10 text-muted max-w-2xl mx-auto">
+            <p className="mb-10 text-sm md:text-base font-medium text-muted-foreground max-w-2xl mx-auto">
               {hero.subtitle}
             </p>
 
@@ -57,10 +57,10 @@ export default function Home() {
       <section id="tools" className="py-20 md:py-32 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 max-w-2xl mx-auto">
-            <h2 className="mb-4 text-foreground">
+            <h2 className="mb-4 text-xl md:text-2xl font-bold tracking-tight text-foreground">
               {tools.title}
             </h2>
-            <p className="text-muted">
+            <p className="text-sm md:text-base font-medium text-muted-foreground">
               {tools.subtitle}
             </p>
           </div>
@@ -72,7 +72,7 @@ export default function Home() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Icon name="image" size={20} />
               </div>
-              <h3 className="text-2xl font-bold text-foreground">Image Tools</h3>
+              <h3 className="text-lg md:text-xl font-bold tracking-tight text-foreground">Image Tools</h3>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -81,10 +81,10 @@ export default function Home() {
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/5 text-primary group-hover:bg-primary/10 transition-colors">
                     <Icon name={tool.icon} size={24} />
                   </div>
-                  <h3 className="mb-2 text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="mb-2 text-base md:text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
                     {tool.title}
                   </h3>
-                  <p className="mb-4 text-sm text-muted leading-relaxed flex-grow">
+                  <p className="mb-4 text-xs md:text-sm text-muted-foreground leading-relaxed flex-grow">
                     {tool.description}
                   </p>
                   <div className="flex items-center text-sm font-semibold text-primary">
@@ -101,7 +101,7 @@ export default function Home() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10 text-red-600">
                 <Icon name="file-text" size={20} />
               </div>
-              <h3 className="text-2xl font-bold text-foreground">PDF Tools</h3>
+              <h3 className="text-lg md:text-xl font-bold tracking-tight text-foreground">PDF Tools</h3>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -110,10 +110,10 @@ export default function Home() {
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/5 text-red-600 group-hover:bg-red-500/10 transition-colors">
                     <Icon name={tool.icon} size={24} />
                   </div>
-                  <h3 className="mb-2 text-lg font-bold text-foreground group-hover:text-red-600 transition-colors">
+                  <h3 className="mb-2 text-base md:text-lg font-semibold text-foreground group-hover:text-red-600 transition-colors">
                     {tool.title}
                   </h3>
-                  <p className="mb-4 text-sm text-muted leading-relaxed flex-grow">
+                  <p className="mb-4 text-xs md:text-sm text-muted-foreground leading-relaxed flex-grow">
                     {tool.description}
                   </p>
                   <div className="flex items-center text-sm font-semibold text-red-600">
@@ -136,8 +136,8 @@ export default function Home() {
                   <Icon name={feature.icon as string} size={24} />
                 </div>
                 <div>
-                  <h3 className="mb-2 text-lg font-bold text-foreground">{feature.title}</h3>
-                  <p className="text-muted leading-relaxed text-sm">
+                  <h3 className="mb-2 text-base md:text-lg font-semibold text-foreground">{feature.title}</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
                     {feature.description}
                   </p>
                 </div>

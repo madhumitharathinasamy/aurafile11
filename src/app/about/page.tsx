@@ -22,11 +22,11 @@ export default function AboutPage() {
                 <section className="mb-24 grid gap-8 md:mb-12">
                     <div className="mx-auto max-w-[800px] text-center">
                         <h2 className="mb-6 text-3xl font-bold md:text-4xl text-foreground">Who are we?</h2>
-                        <p className="mb-6 text-lg leading-relaxed text-muted">
+                        <p className="mb-6 text-lg md:text-xl leading-relaxed text-muted-foreground">
                             Since 2024, Aura File has been dedicated to providing user-friendly image editing tools that are quick to process with high-quality results.
                             We noticed that most free online tools were full of ads, slow, or unsafe. We wanted to build something better.
                         </p>
-                        <p className="text-lg leading-relaxed text-muted">
+                        <p className="text-lg md:text-xl leading-relaxed text-muted-foreground">
                             Based in the cloud but running locally in your browser when possible, Aura File is designed to be the <strong>safest</strong> place to edit your photos online.
                         </p>
                     </div>
@@ -72,8 +72,8 @@ export default function AboutPage() {
 
                 {/* Media Kit Section */}
                 <section className="rounded-xl bg-gradient-to-br from-[#1f1f23] to-black px-8 py-16 text-center text-white">
-                    <h2 className="mb-6 text-2xl font-bold">Media Kit</h2>
-                    <p className="mx-auto mb-8 max-w-[600px] text-gray-400">
+                    <h2 className="mb-6 text-3xl md:text-4xl font-bold">Media Kit</h2>
+                    <p className="mx-auto mb-8 max-w-[600px] text-lg md:text-xl text-gray-400">
                         Writing about Aura File? Download our official logos and brand assets here.
                     </p>
                     <div className="flex flex-wrap justify-center gap-4">

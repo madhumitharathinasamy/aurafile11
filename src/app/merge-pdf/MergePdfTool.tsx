@@ -2,24 +2,29 @@
 
 import { useState } from "react";
 import { PdfUploader } from "@/components/tools/PdfUploader";
-import { Button } from "@/components/ui/Button";
+import { ToolModal } from "@/components/modal/ToolModal";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 import { PDFDocument } from "pdf-lib";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 export default function MergePdfTool() {
-    const [files, setFiles] = useState<File[]>([]);
-    const [mergedUrl, setMergedUrl] = useState<string | null>(null);
+    const {
+        files,
+        setFiles,
+        activeIndex,
+        setActiveIndex,
+        activeFile,
+        addFiles,
+        removeFile,
+        clearAll
+    } = useFileUpload([]);
+
     const [isProcessing, setIsProcessing] = useState(false);
+    const [mergedUrl, setMergedUrl] = useState<string | null>(null);
 
     const handleUpload = (newFiles: File[]) => {
-        // Append new files to existing ones
-        setFiles(prev => [...prev, ...newFiles]);
-        setMergedUrl(null);
-    };
-
-    const removeFile = (index: number) => {
-        setFiles(prev => prev.filter((_, i) => i !== index));
+        addFiles(newFiles);
         setMergedUrl(null);
     };
 
@@ -29,10 +34,12 @@ export default function MergePdfTool() {
             (direction === 'down' && index === files.length - 1)
         ) return;
 
-        const newFiles = [...files];
-        const targetIndex = direction === 'up' ? index - 1 : index + 1;
-        [newFiles[index], newFiles[targetIndex]] = [newFiles[targetIndex], newFiles[index]];
-        setFiles(newFiles);
+        setFiles(prev => {
+            const newFiles = [...prev];
+            const targetIndex = direction === 'up' ? index - 1 : index + 1;
+            [newFiles[index], newFiles[targetIndex]] = [newFiles[targetIndex], newFiles[index]];
+            return newFiles;
+        });
         setMergedUrl(null);
     };
 
@@ -46,14 +53,14 @@ export default function MergePdfTool() {
         try {
             const mergedPdf = await PDFDocument.create();
 
-            for (const file of files) {
-                const arrayBuffer = await file.arrayBuffer();
+            for (const fileState of files) {
+                const arrayBuffer = await fileState.file.arrayBuffer();
                 const pdf = await PDFDocument.load(arrayBuffer);
                 const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
                 copiedPages.forEach((page: any) => mergedPdf.addPage(page));
             }
 
-            const pdfBytes = await mergedPdf.save();
+            const pdfBytes = await mergedPdf.save({ useObjectStreams: false });
             const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
             setMergedUrl(url);
@@ -67,122 +74,164 @@ export default function MergePdfTool() {
         }
     };
 
-    const handleReset = () => {
-        setFiles([]);
-        setMergedUrl(null);
+    const downloadFile = async () => {
+        if (!mergedUrl) return;
+
+        try {
+            const response = await fetch(mergedUrl);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = `merged_document_${new Date().getTime()}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error("Download failed:", error);
+            toast.error("Failed to download merged PDF safely.");
+        }
+    };
+
+    const handlePrimaryAction = () => {
+        if (mergedUrl) {
+            downloadFile();
+        } else {
+            handleMerge();
+        }
     };
 
     return (
-        <div className="flex flex-col gap-8">
-            {files.length === 0 ? (
-                <div className="mx-auto max-w-3xl">
-                    <PdfUploader onUpload={handleUpload} maxFiles={10} />
-                </div>
-            ) : (
-                <div className="mx-auto max-w-2xl w-full space-y-8">
-                    {/* File List */}
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-semibold text-lg">Selected Files ({files.length})</h3>
-                            <Button variant="secondary" onClick={() => document.getElementById('hidden-input')?.click()}>
-                                <Icon name="plus" size={16} className="mr-2" /> Add More
-                            </Button>
-                            {/* Hidden uploader for adding more */}
-                            <div className="hidden">
-                                <PdfUploader onUpload={handleUpload} maxFiles={10} />
-                                <div id="hidden-input"></div> {/* Hacky trigger - actually PdfUploader UI is distinct. Let's just reset to add more if list is empty, OR render a small uploader. For now, simple Reset logic is safer or just use main uploader if I refactor. Actually, let's keep it simple: Reset to start over or proceed. Adding more needs complex UI. Let's stick to "Start Over" for MVP if they messed up, OR just render a small button that triggers a hidden input? Standard file input is easier. */}
+        <div className="w-full space-y-8">
+            {files.length === 0 && (
+                <div className="mt-6 w-full max-w-7xl mx-auto">
+                    <div className="rounded-xl border border-border bg-white shadow-xl p-4 md:p-8">
+                        <PdfUploader onUpload={handleUpload} />
+
+                        <div className="mt-8 rounded-xl bg-[#0081C9]/5 p-4 text-sm text-[#0081C9] border border-[#0081C9]/20 flex gap-3 mx-auto max-w-2xl">
+                            <Icon name="shield" size={20} className="flex-shrink-0 mt-0.5" />
+                            <div>
+                                <strong>Secure Processing:</strong> Your files are merged entirely in your web browser. They are never uploaded to any server.
                             </div>
                         </div>
-
-                        {files.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 bg-surface border border-border rounded-xl animate-fade-in">
-                                <div className="flex items-center gap-3 overflow-hidden">
-                                    <div className="bg-red-100 p-2 rounded-lg text-red-600 flex-shrink-0">
-                                        <Icon name="file-text" size={20} />
-                                    </div>
-                                    <span className="truncate text-sm font-medium">{file.name}</span>
-                                    <span className="text-xs text-muted flex-shrink-0">({(file.size / 1024).toFixed(1)} KB)</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <button
-                                        onClick={() => moveFile(index, 'up')}
-                                        disabled={index === 0}
-                                        className="p-2 text-muted hover:text-primary disabled:opacity-30 transition-colors"
-                                    >
-                                        <Icon name="arrow-up" size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => moveFile(index, 'down')}
-                                        disabled={index === files.length - 1}
-                                        className="p-2 text-muted hover:text-primary disabled:opacity-30 transition-colors"
-                                    >
-                                        <Icon name="arrow-down" size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => removeFile(index)}
-                                        className="p-2 text-muted hover:text-red-500 transition-colors"
-                                    >
-                                        <Icon name="x" size={18} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
                     </div>
+                </div>
+            )}
 
-                    {/* Actions */}
-                    <div className="rounded-xl border border-border bg-surface p-6">
+            <ToolModal
+                isOpen={files.length > 0}
+                onClose={clearAll}
+                title="Merge PDF"
+                files={files}
+                activeIndex={activeIndex}
+                setActiveIndex={setActiveIndex}
+                onPrimaryAction={handlePrimaryAction}
+                primaryActionText={
+                    <span className="flex items-center justify-center gap-2">
                         {mergedUrl ? (
-                            <div className="space-y-4 animate-fade-in">
-                                <div className="rounded-lg bg-green-50 p-4 text-green-800 border border-green-200 text-center font-medium">
-                                    Merge Successful!
-                                </div>
-                                <a href={mergedUrl} download="merged_document.pdf" className="block w-full">
-                                    <Button className="w-full py-4 text-lg bg-red-600 hover:bg-red-700 text-white shadow-red-500/20">
-                                        <Icon name="download" size={20} className="mr-2" />
-                                        Download Merged PDF
-                                    </Button>
-                                </a>
-                                <Button className="w-full py-4 text-lg bg-red-600 hover:bg-red-700 text-white shadow-red-500/20" onClick={handleReset}>
-                                    <Icon name="shield-check" size={20} className="mr-2" />
-                                    Merge Different Files
-                                </Button>
-                            </div>
+                            <>
+                                <Icon name="download" size={18} />
+                                Download Merged PDF
+                            </>
                         ) : (
-                            <div className="space-y-3">
-                                <Button
-                                    onClick={handleMerge}
-                                    disabled={isProcessing || files.length < 2}
-                                    className="w-full py-4 text-lg bg-red-600 hover:bg-red-700 text-white shadow-red-500/20"
-                                >
-                                    {isProcessing ? (
-                                        <span className="flex items-center gap-2">
-                                            <Icon name="rotate-cw" size={20} className="animate-spin" />
-                                            Merging PDFs...
-                                        </span>
-                                    ) : (
-                                        <span className="flex items-center gap-2">
-                                            Merge PDF Files
-                                            <Icon name="files" size={20} />
-                                        </span>
-                                    )}
-                                </Button>
-                                <Button variant="secondary" onClick={handleReset} className="w-full" disabled={isProcessing}>
-                                    Clear All
-                                </Button>
-                            </div>
+                            <>
+                                <Icon name="files" size={18} />
+                                Merge PDF Files
+                            </>
                         )}
+                    </span>
+                }
+                isProcessing={isProcessing}
+            >
+                {/* TOOL SPECIFIC SIDEBAR CONTENT */}
+                <div className="space-y-8">
+                    <div>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold text-slate-800 font-sans">Document Order</h2>
+                            {mergedUrl && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                    <Icon name="check-circle" size={14} />
+                                    Combined
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Stats Info Box */}
+                        <div className="bg-[#E8ECEF] rounded-xl p-4 flex flex-col gap-3 shadow-sm mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white p-2 rounded-lg shadow-sm">
+                                    <Icon name="layers" size={24} className="text-[#0081C9]" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-slate-800 truncate text-sm">
+                                        {files.length} Document{files.length !== 1 ? 's' : ''} Uploaded
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                                        Use the arrows below to order them.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-800">Files to Merge</h3>
 
-                    <div className="mt-8 rounded-xl bg-red-50/50 p-4 text-sm text-red-600 border border-red-100 flex gap-3">
-                        <Icon name="shield" size={20} className="flex-shrink-0 mt-0.5" />
-                        <div>
-                            <strong>Secure Processing:</strong> Your files are merged entirely in your web browser. They are never uploaded to any server.
+                        <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                            {files.map((fileState, index) => (
+                                <div key={fileState.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-[#0081C9]/50 transition-colors">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <div className="bg-[#E8ECEF] p-2 rounded-lg text-slate-600 flex-shrink-0 relative group">
+                                            <Icon name="file-text" size={18} />
+                                            {index === activeIndex && (
+                                                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#0081C9] rounded-full border-2 border-white"></div>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="truncate text-xs font-semibold text-slate-700" title={fileState.file.name}>
+                                                {fileState.file.name}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400 font-medium">
+                                                {(fileState.size / 1024).toFixed(1)} KB
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-0.5 bg-[#E8ECEF] rounded-lg p-0.5 flex-shrink-0">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); moveFile(index, 'up'); }}
+                                            disabled={index === 0 || !!mergedUrl}
+                                            className="p-1.5 text-slate-400 hover:text-[#0081C9] hover:bg-white rounded-md disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 transition-all"
+                                            title="Move Up"
+                                        >
+                                            <Icon name="chevron-up" size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); moveFile(index, 'down'); }}
+                                            disabled={index === files.length - 1 || !!mergedUrl}
+                                            className="p-1.5 text-slate-400 hover:text-[#0081C9] hover:bg-white rounded-md disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 transition-all"
+                                            title="Move Down"
+                                        >
+                                            <Icon name="chevron-down" size={14} />
+                                        </button>
+                                        <div className="w-px h-4 bg-slate-300 mx-0.5"></div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); removeFile(fileState.id); }}
+                                            disabled={!!mergedUrl}
+                                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-md disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 transition-all"
+                                            title="Remove File"
+                                        >
+                                            <Icon name="x" size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
-            )
-            }
-        </div >
+            </ToolModal>
+        </div>
     );
 }
