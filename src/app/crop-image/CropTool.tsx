@@ -7,6 +7,7 @@ import ReactCrop, {
     Crop,
     PixelCrop,
     convertToPixelCrop,
+    convertToPercentCrop
 } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { ImageUploader } from "@/components/tools/ImageUploader";
@@ -14,6 +15,9 @@ import { ToolModal } from "@/components/modal/ToolModal";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { ToolSettingsRenderer, SettingGroup, SettingRow } from "@/components/tools/ToolSettingsRenderer";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 type AspectRatio = {
     label: string;
@@ -40,11 +44,13 @@ export default function CropTool() {
         activeFile,
         addFiles,
         clearAll,
+        updateFileSettings,
+        updateAllFileSettings
     } = useFileUpload([]);
 
     const imgRef = useRef<HTMLImageElement>(null);
 
-    // Crop State
+    // Crop State (Local to avoid lag during drag)
     const [crop, setCrop] = useState<Crop>();
     const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
 
@@ -59,11 +65,52 @@ export default function CropTool() {
     const [showGrid, setShowGrid] = useState(true);
 
     const [isProcessing, setIsProcessing] = useState(false);
+    const [applyToAll, setApplyToAll] = useState(false);
+    const [croppedUrls, setCroppedUrls] = useState<{ [id: string]: string }>({});
 
     // Local inputs mapping
     const [widthInput, setWidthInput] = useState("");
     const [heightInput, setHeightInput] = useState("");
     const [isInputActive, setIsInputActive] = useState(false);
+
+    // Cleanup URLs
+    useEffect(() => {
+        return () => {
+            Object.values(croppedUrls).forEach(url => URL.revokeObjectURL(url));
+        };
+    }, []);
+
+    // Synchronize settings when switching active files
+    // If we wanted true per-file persistence of crop boxes, we'd load them from activeFile.settings here.
+    // For simplicity and standard batch tool flow, we let the user manipulate the active one and choose to apply it globally or just export it.
+    useEffect(() => {
+        if (activeFile && imgRef.current) {
+            // Re-trigger load to calculate default crop for this new active file
+            // if we don't have a crop yet
+            if (!crop) {
+                const { width, height, naturalWidth, naturalHeight } = imgRef.current;
+                if (width && height) {
+                    const sX = naturalWidth / width;
+                    const sY = naturalHeight / height;
+                    setScale({ x: sX, y: sY });
+
+                    const initialCrop = centerCrop(
+                        makeAspectCrop(
+                            { unit: 'px', width: width * 0.9 },
+                            aspect || naturalWidth / naturalHeight,
+                            width,
+                            height
+                        ),
+                        width,
+                        height
+                    );
+                    setCrop(initialCrop);
+                    setCompletedCrop(initialCrop);
+                }
+            }
+        }
+    }, [activeIndex, activeFile]);
+
 
     useEffect(() => {
         if (!isInputActive && completedCrop && scale.x > 0 && scale.y > 0) {
@@ -73,23 +120,60 @@ export default function CropTool() {
     }, [completedCrop, scale, isInputActive]);
 
     const handleUpload = (uploadedFiles: File[]) => {
-        if (files.length > 0) {
-            toast.error("Crop tool only supports one image at a time.");
-            return;
-        }
-        addFiles([uploadedFiles[0]]);
+        setCroppedUrls(prev => {
+            Object.values(prev).forEach(url => URL.revokeObjectURL(url));
+            return {};
+        });
 
-        // Reset crop settings on new upload
-        setCrop(undefined);
-        setCompletedCrop(undefined);
-        setRotate(0);
-        setFlipH(false);
-        setFlipV(false);
-        setAspect(undefined);
-        setSelectedRatioLabel("Free");
+        const uniqueFiles = uploadedFiles.filter(newFile =>
+            !files.some(existing => existing.file.name === newFile.name && existing.file.size === newFile.size)
+        );
+
+        // Ensure default settings are applied properly, including isCropped
+        const enrichedFiles = uniqueFiles.map(file => ({
+            file,
+            settings: { isCropped: false }
+        }));
+
+        addFiles(uniqueFiles, { isCropped: false });
+
+        // Reset crop settings on new generic upload if list was empty
+        if (files.length === 0) {
+            setCrop(undefined);
+            setCompletedCrop(undefined);
+            setRotate(0);
+            setFlipH(false);
+            setFlipV(false);
+            setAspect(undefined);
+            setSelectedRatioLabel("Free");
+            setIsCircular(false);
+        }
+    };
+
+    const handleSettingChange = (updates: any) => {
+        if (!activeFile) return;
+
+        setCroppedUrls(prev => {
+            const newUrls = { ...prev };
+            if (applyToAll && files.length > 1) {
+                Object.values(newUrls).forEach(url => URL.revokeObjectURL(url));
+                return {};
+            } else if (newUrls[activeFile.id]) {
+                URL.revokeObjectURL(newUrls[activeFile.id]);
+                delete newUrls[activeFile.id];
+            }
+            return newUrls;
+        });
+
+        if (applyToAll && files.length > 1) {
+            updateAllFileSettings({ ...updates, isCropped: false });
+        } else {
+            updateFileSettings(activeFile.id, { ...updates, isCropped: false });
+        }
     };
 
     const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        handleSettingChange({}); // Triggers isCropped resetting
         const { width, height, naturalWidth, naturalHeight } = e.currentTarget;
         const sX = naturalWidth / width;
         const sY = naturalHeight / height;
@@ -110,6 +194,7 @@ export default function CropTool() {
     };
 
     const handleAspectRatioChange = (ratio: AspectRatio) => {
+        handleSettingChange({});
         setSelectedRatioLabel(ratio.label);
         if (ratio.label === "Original" && imgRef.current) {
             const { width, height, naturalWidth, naturalHeight } = imgRef.current;
@@ -139,6 +224,7 @@ export default function CropTool() {
     };
 
     const handleDimensionChange = (type: 'width' | 'height', valueStr: string) => {
+        handleSettingChange({});
         if (type === 'width') setWidthInput(valueStr);
         else setHeightInput(valueStr);
 
@@ -167,65 +253,104 @@ export default function CropTool() {
     };
 
     const canvasUtils = async (
-        image: HTMLImageElement,
-        crop: PixelCrop,
+        imageSource: HTMLImageElement | File,
+        cropParams: { x: number, y: number, width: number, height: number, unit: 'px' | '%' },
         rotation = 0,
-        flip = { horizontal: false, vertical: false }
+        flip = { horizontal: false, vertical: false },
+        circular = false
     ): Promise<string | null> => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return null;
 
-        const scaleX = image.naturalWidth / image.width;
-        const scaleY = image.naturalHeight / image.height;
-        const radians = (rotation * Math.PI) / 180;
-        const pixelRatio = window.devicePixelRatio || 1;
+        return new Promise((resolve, reject) => {
+            const img = new Image();
 
-        canvas.width = Math.floor(crop.width * scaleX * pixelRatio);
-        canvas.height = Math.floor(crop.height * scaleY * pixelRatio);
+            const handleDraw = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject("No context");
+                    return;
+                }
 
-        ctx.scale(pixelRatio, pixelRatio);
-        ctx.imageSmoothingQuality = 'high';
-        ctx.save();
+                const radians = (rotation * Math.PI) / 180;
 
-        const cropX = crop.x * scaleX;
-        const cropY = crop.y * scaleY;
+                // Calculate absolute crop coordinates based on unit
+                let absX = cropParams.x;
+                let absY = cropParams.y;
+                let absW = cropParams.width;
+                let absH = cropParams.height;
 
-        ctx.translate(-cropX, -cropY);
-        ctx.translate(image.naturalWidth / 2, image.naturalHeight / 2);
-        ctx.rotate(radians);
-        ctx.scale(flip.horizontal ? -1 : 1, flip.vertical ? -1 : 1);
-        ctx.translate(-image.naturalWidth / 2, -image.naturalHeight / 2);
-        ctx.drawImage(image, 0, 0);
-        ctx.restore();
+                if (cropParams.unit === '%') {
+                    absX = (cropParams.x / 100) * img.naturalWidth;
+                    absY = (cropParams.y / 100) * img.naturalHeight;
+                    absW = (cropParams.width / 100) * img.naturalWidth;
+                    absH = (cropParams.height / 100) * img.naturalHeight;
+                }
 
-        if (isCircular) {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const tCtx = tempCanvas.getContext('2d');
+                canvas.width = Math.floor(absW);
+                canvas.height = Math.floor(absH);
 
-            if (tCtx) {
-                tCtx.drawImage(canvas, 0, 0);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.beginPath();
-                ctx.ellipse(
-                    canvas.width / 2, canvas.height / 2,
-                    canvas.width / 2, canvas.height / 2,
-                    0, 0, 2 * Math.PI
-                );
-                ctx.closePath();
-                ctx.clip();
-                ctx.drawImage(tempCanvas, 0, 0);
+                ctx.imageSmoothingQuality = 'high';
+                ctx.save();
+
+                ctx.translate(-absX, -absY);
+                ctx.translate(img.naturalWidth / 2, img.naturalHeight / 2);
+                ctx.rotate(radians);
+                ctx.scale(flip.horizontal ? -1 : 1, flip.vertical ? -1 : 1);
+                ctx.translate(-img.naturalWidth / 2, -img.naturalHeight / 2);
+                ctx.drawImage(img, 0, 0);
+                ctx.restore();
+
+                if (circular) {
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = canvas.width;
+                    tempCanvas.height = canvas.height;
+                    const tCtx = tempCanvas.getContext('2d');
+
+                    if (tCtx) {
+                        tCtx.drawImage(canvas, 0, 0);
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.beginPath();
+                        ctx.ellipse(
+                            canvas.width / 2, canvas.height / 2,
+                            canvas.width / 2, canvas.height / 2,
+                            0, 0, 2 * Math.PI
+                        );
+                        ctx.closePath();
+                        ctx.clip();
+                        ctx.drawImage(tempCanvas, 0, 0);
+                    }
+                }
+
+                // Output format logic
+                let outFormat = 'image/jpeg';
+                if (imageSource instanceof File) {
+                    if (imageSource.type === 'image/png' || imageSource.type === 'image/webp') {
+                        outFormat = imageSource.type;
+                    }
+                }
+
+                canvas.toBlob((blob) => {
+                    if (!blob) resolve(null);
+                    else resolve(URL.createObjectURL(blob));
+                }, outFormat, 0.95);
+            };
+
+            if (imageSource instanceof File) {
+                const url = URL.createObjectURL(imageSource);
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    handleDraw();
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject("Image load error");
+                }
+                img.src = url;
+            } else {
+                img.src = imageSource.src;
+                handleDraw();
             }
-        }
-
-        return new Promise((resolve) => {
-            canvas.toBlob((blob) => {
-                if (!blob) resolve(null);
-                else resolve(URL.createObjectURL(blob));
-            }, activeFile?.file.type || 'image/jpeg');
         });
     };
 
@@ -233,22 +358,44 @@ export default function CropTool() {
         if (!completedCrop || !imgRef.current || !activeFile) return;
         setIsProcessing(true);
 
+        // Clear previous urls
+        setCroppedUrls(prev => {
+            Object.values(prev).forEach(url => URL.revokeObjectURL(url));
+            return {};
+        });
+
         try {
-            const url = await canvasUtils(imgRef.current, completedCrop, rotate, { horizontal: flipH, vertical: flipV });
-            if (url) {
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = `cropped-${activeFile.file.name}`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            const newUrls: { [id: string]: string } = {};
 
-                toast.success("Image cropped and downloaded!");
+            // To apply to all files of varying sizes, we must convert the current pixel crop to a percentage crop
+            const percentCrop = convertToPercentCrop(completedCrop, imgRef.current.width, imgRef.current.height);
 
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
-            } else {
-                throw new Error("Canvas generation failed");
+            const filesToProcess = applyToAll ? files : [activeFile];
+
+            for (const fileMeta of filesToProcess) {
+                // Determine whether to use absolute pixels (exact same bounding box) or percentage.
+                // Percentage is vastly safer for batching images of different sizes.
+                const cropParams = applyToAll
+                    ? { ...percentCrop, unit: '%' as const }
+                    : { ...completedCrop, unit: 'px' as const };
+
+                // If single file processing, we can use imgRef directly to save a reload.
+                // But for safety and consistency, we'll re-load if it's not the active one.
+                const source = (fileMeta.id === activeFile.id) ? imgRef.current : fileMeta.file;
+
+                const url = await canvasUtils(source, cropParams, rotate, { horizontal: flipH, vertical: flipV }, isCircular);
+
+                if (url) {
+                    newUrls[fileMeta.id] = url;
+                    updateFileSettings(fileMeta.id, { isCropped: true });
+                } else {
+                    console.error("Canvas generation failed for", fileMeta.file.name);
+                }
             }
+
+            setCroppedUrls(prev => ({ ...prev, ...newUrls }));
+            toast.success("Crop applied successfully! Ready to download.");
+
         } catch (error) {
             console.error(error);
             toast.error("Failed to crop image.");
@@ -257,43 +404,114 @@ export default function CropTool() {
         }
     };
 
+    const handleDownload = async () => {
+        try {
+            if (applyToAll && files.length > 1) {
+                const zip = new JSZip();
+                const promises = files.map(async (fileMeta) => {
+                    if (!fileMeta.settings?.isCropped || !croppedUrls[fileMeta.id]) return;
+                    const res = await fetch(croppedUrls[fileMeta.id]);
+                    const blob = await res.blob();
+
+                    const originalName = fileMeta.file.name.substring(0, fileMeta.file.name.lastIndexOf('.')) || fileMeta.file.name;
+                    const ext = fileMeta.file.type.split('/')[1] || "jpg";
+                    zip.file(`${originalName}-cropped.${ext}`, blob);
+                });
+
+                await Promise.all(promises);
+                const content = await zip.generateAsync({ type: "blob" });
+                saveAs(content, "aurafile-cropped.zip");
+                toast.success("Downloaded ZIP file!");
+            } else if (activeFile && activeFile.settings?.isCropped && croppedUrls[activeFile.id]) {
+                const res = await fetch(croppedUrls[activeFile.id]);
+                const blob = await res.blob();
+
+                const originalName = activeFile.file.name.substring(0, activeFile.file.name.lastIndexOf('.')) || activeFile.file.name;
+                const ext = activeFile.file.type.split('/')[1] || "jpg";
+                saveAs(blob, `${originalName}-cropped.${ext}`);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to download images.");
+        }
+    };
+
+    const isAllReady = applyToAll && files.length > 0 && files.every(f => croppedUrls[f.id]);
+    const isCurrentReady = !applyToAll && activeFile && croppedUrls[activeFile.id];
+
+    const handlePrimaryAction = () => {
+        if (isAllReady || isCurrentReady) {
+            handleDownload();
+        } else {
+            performCrop();
+        }
+    };
+
+    const getPrimaryActionText = () => {
+        if (isProcessing) return "Processing...";
+        if (isAllReady) return `Download All (${files.length} Zipped)`;
+        if (isCurrentReady) return "Download Image";
+        return applyToAll && files.length > 1 ? `Crop All (${files.length})` : "Apply Crop";
+    };
+
     // Override the custom Left Stage preview to use ReactCrop directly
     const customPreview = activeFile ? (
         <div className="w-full h-full flex flex-col items-center justify-center p-4">
-            <ReactCrop
-                crop={crop}
-                onChange={(_, percentCrop) => setCrop(percentCrop)}
-                onComplete={(c) => setCompletedCrop(c)}
-                aspect={aspect}
-                circularCrop={isCircular}
-                ruleOfThirds={showGrid}
-                className="max-h-[60vh] md:max-h-[80%]"
-            >
-                <img
-                    ref={imgRef}
-                    src={activeFile.previewUrl}
-                    alt="Edit"
-                    onLoad={onImageLoad}
-                    style={{
-                        transform: `rotate(${rotate}deg) scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})`,
-                        maxWidth: '100%',
-                        maxHeight: '60vh',
-                        transition: 'transform 0.3s ease',
-                        objectFit: 'contain'
+            {croppedUrls[activeFile.id] ? (
+                <div className="relative flex items-center justify-center max-w-full max-h-[60vh] md:max-h-[80%] shadow-md drop-shadow-sm border border-slate-200 bg-[linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa),linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa)] bg-white bg-[length:20px_20px] bg-[position:0_0,10px_10px]">
+                    <img
+                        src={croppedUrls[activeFile.id]}
+                        alt="Cropped Result"
+                        className="max-h-[60vh] md:max-h-[80%] pointer-events-none"
+                        style={{ objectFit: 'contain' }}
+                    />
+                </div>
+            ) : (
+                <ReactCrop
+                    crop={crop}
+                    onChange={(_, percentCrop) => {
+                        handleSettingChange({}); // Triggers isCropped resetting
+                        setCrop(percentCrop);
                     }}
-                    className="drop-shadow-sm pointer-events-none"
-                />
-            </ReactCrop>
+                    onComplete={(c) => setCompletedCrop(c)}
+                    aspect={aspect}
+                    circularCrop={isCircular}
+                    ruleOfThirds={showGrid}
+                    className="max-h-[60vh] md:max-h-[80%]"
+                >
+                    <img
+                        ref={imgRef}
+                        key={activeFile.id} // Ensure it rerenders cleanly on switch
+                        src={activeFile.previewUrl}
+                        alt="Edit"
+                        onLoad={onImageLoad}
+                        style={{
+                            transform: `rotate(${rotate}deg) scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})`,
+                            maxWidth: '100%',
+                            maxHeight: '60vh',
+                            transition: 'transform 0.3s ease',
+                            objectFit: 'contain'
+                        }}
+                        className="drop-shadow-sm pointer-events-none"
+                    />
+                </ReactCrop>
+            )}
 
-            {/* Quick Stats Overlay */}
-            <div className="absolute bottom-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm text-xs font-semibold text-slate-700 flex items-center gap-3 z-10">
-                <span>{completedCrop ? `${Math.round(completedCrop.width * scale.x)} x ${Math.round(completedCrop.height * scale.y)} px` : ''}</span>
-                <span className="w-px h-3 bg-slate-300" />
-                <span><Icon name="rotate-cw" size={12} className="inline mr-1" />{rotate}°</span>
-                <span className="w-px h-3 bg-slate-300" />
-                <button onClick={() => setShowGrid(!showGrid)} className={`hover:text-[#0081C9] transition-colors ${showGrid ? 'text-[#0081C9]' : ''}`}>
-                    <Icon name="grid" size={14} />
-                </button>
+            {/* Quick Stats Overlay & Download Status */}
+            <div className={`absolute bottom-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm text-xs font-semibold flex items-center gap-3 z-10 transition-all ${croppedUrls[activeFile.id] ? 'text-green-600' : 'text-slate-700'}`}>
+                {croppedUrls[activeFile.id] ? (
+                    <><Icon name="check-circle" size={14} className="inline mr-1" /> Cropped Successfully</>
+                ) : (
+                    <>
+                        <span>{completedCrop && scale.x > 0 ? `${Math.round(completedCrop.width * scale.x)} x ${Math.round(completedCrop.height * scale.y)} px` : ''}</span>
+                        <span className="w-px h-3 bg-slate-300" />
+                        <span><Icon name="rotate-cw" size={12} className="inline mr-1" />{rotate}°</span>
+                        <span className="w-px h-3 bg-slate-300" />
+                        <button onClick={() => setShowGrid(!showGrid)} className={`hover:text-[#0081C9] transition-colors ${showGrid ? 'text-[#0081C9]' : ''}`} title="Toggle Grid">
+                            <Icon name="grid" size={14} />
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     ) : null;
@@ -315,187 +533,172 @@ export default function CropTool() {
                 files={files}
                 activeIndex={activeIndex}
                 setActiveIndex={setActiveIndex}
-                onPrimaryAction={performCrop}
+                onPrimaryAction={handlePrimaryAction}
                 primaryActionText={
                     <span className="flex items-center justify-center gap-2">
-                        <Icon name="crop" size={18} />
-                        Apply Crop
+                        <Icon name={(isAllReady || isCurrentReady) ? "download" : "crop"} size={18} />
+                        {getPrimaryActionText()}
                     </span>
                 }
                 isProcessing={isProcessing}
                 customPreview={customPreview}
             >
-                {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
-                    <div className="space-y-8">
-                        <div>
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-slate-800 font-sans">Crop Options</h2>
-                                <button onClick={() => { setRotate(0); setFlipH(false); setFlipV(false); setAspect(undefined); setSelectedRatioLabel("Free"); setIsCircular(false); if (imgRef.current) onImageLoad({ currentTarget: imgRef.current } as any); }} className="text-xs font-semibold text-[#0081C9] hover:underline">
-                                    Reset
+                    <ToolSettingsRenderer
+                        title="Crop Settings"
+                        isBatchMode={files.length > 1}
+                        applyToAll={applyToAll}
+                        onApplyToAllChange={setApplyToAll}
+                    >
+                        <div className="flex items-center justify-end mb-2">
+                            <button onClick={() => { setRotate(0); setFlipH(false); setFlipV(false); setAspect(undefined); setSelectedRatioLabel("Free"); setIsCircular(false); if (imgRef.current) onImageLoad({ currentTarget: imgRef.current } as any); }} className="text-xs font-semibold text-[#0081C9] hover:underline">
+                                Reset Changes
+                            </button>
+                        </div>
+
+                        <SettingGroup title="Dimensions">
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Exact Pixels</label>
+                                <button
+                                    onClick={() => {
+                                        if (aspect) { setAspect(undefined); setSelectedRatioLabel("Free"); }
+                                        else if (completedCrop && completedCrop.height > 0) { setAspect(completedCrop.width / completedCrop.height); setSelectedRatioLabel("Custom"); }
+                                    }}
+                                    className={`text-xs flex items-center gap-1 transition-colors ${aspect ? "text-[#0081C9] font-medium" : "text-slate-500"}`}
+                                >
+                                    <Icon name={aspect ? "lock" : "unlock"} size={12} />
+                                    {aspect ? "Locked" : "Unlocked"}
                                 </button>
                             </div>
-
-                            {/* Dimensions */}
-                            <div className="space-y-3 mb-6">
-                                <div className="flex justify-between items-center">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Dimensions</label>
-                                    <button
-                                        onClick={() => {
-                                            if (aspect) { setAspect(undefined); setSelectedRatioLabel("Free"); }
-                                            else if (completedCrop && completedCrop.height > 0) { setAspect(completedCrop.width / completedCrop.height); setSelectedRatioLabel("Custom"); }
-                                        }}
-                                        className={`text-xs flex items-center gap-1 transition-colors ${aspect ? "text-[#0081C9] font-medium" : "text-slate-500"}`}
-                                    >
-                                        <Icon name={aspect ? "lock" : "unlock"} size={12} />
-                                        {aspect ? "Locked" : "Unlocked"}
-                                    </button>
+                            <div className="flex items-center gap-2 w-full pt-1">
+                                <div className="flex-1 space-y-1.5 flex flex-col">
+                                    <input
+                                        type="number"
+                                        value={widthInput}
+                                        onFocus={() => setIsInputActive(true)}
+                                        onBlur={() => setIsInputActive(false)}
+                                        onChange={(e) => handleDimensionChange('width', e.target.value)}
+                                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-[#0081C9]"
+                                        placeholder="Width"
+                                    />
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 space-y-1 bg-[#E8ECEF] p-3 rounded-xl border border-transparent focus-within:border-[#0081C9] focus-within:bg-white transition-all">
-                                        <span className="text-[10px] text-slate-500 uppercase font-semibold">Width (px)</span>
-                                        <input
-                                            type="number"
-                                            value={widthInput}
-                                            onFocus={() => setIsInputActive(true)}
-                                            onBlur={() => setIsInputActive(false)}
-                                            onChange={(e) => handleDimensionChange('width', e.target.value)}
-                                            className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none"
-                                        />
-                                    </div>
-                                    <div className="text-slate-300">
-                                        <Icon name="x" size={16} />
-                                    </div>
-                                    <div className="flex-1 space-y-1 bg-[#E8ECEF] p-3 rounded-xl border border-transparent focus-within:border-[#0081C9] focus-within:bg-white transition-all">
-                                        <span className="text-[10px] text-slate-500 uppercase font-semibold">Height (px)</span>
-                                        <input
-                                            type="number"
-                                            value={heightInput}
-                                            onFocus={() => setIsInputActive(true)}
-                                            onBlur={() => setIsInputActive(false)}
-                                            onChange={(e) => handleDimensionChange('height', e.target.value)}
-                                            className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none"
-                                        />
-                                    </div>
+                                <div className="text-slate-300 px-1">
+                                    <Icon name="x" size={12} />
+                                </div>
+                                <div className="flex-1 space-y-1.5 flex flex-col">
+                                    <input
+                                        type="number"
+                                        value={heightInput}
+                                        onFocus={() => setIsInputActive(true)}
+                                        onBlur={() => setIsInputActive(false)}
+                                        onChange={(e) => handleDimensionChange('height', e.target.value)}
+                                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-[#0081C9]"
+                                        placeholder="Height"
+                                    />
                                 </div>
                             </div>
+                        </SettingGroup>
 
-                            {/* Aspect Ratios Grid */}
-                            <div className="space-y-3 mb-6">
-                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Aspect Ratio</label>
-                                <div className="grid grid-cols-4 gap-2">
-                                    {ASPECT_RATIOS.map((ratio) => (
-                                        <button
-                                            key={ratio.label}
-                                            onClick={() => handleAspectRatioChange(ratio)}
-                                            className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all gap-1 h-16 ${selectedRatioLabel === ratio.label
-                                                ? "bg-[#0081C9]/5 border-[#0081C9] text-[#0081C9] ring-1 ring-[#0081C9]/20 shadow-sm"
-                                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                                                }`}
-                                        >
-                                            <div className="opacity-70 mt-1">
-                                                {ratio.icon === 'square' && <div className="w-4 h-4 border-2 border-current rounded-sm" />}
-                                                {ratio.icon === 'minimize' && <Icon name="minimize" size={16} />}
-                                                {ratio.icon === 'image' && <Icon name="image" size={16} />}
-                                                {!ratio.icon && (
-                                                    <div
-                                                        className="border-2 border-current rounded-sm"
-                                                        style={{
-                                                            width: ratio.value && ratio.value > 1 ? '16px' : '10px',
-                                                            height: ratio.value && ratio.value > 1 ? '10px' : '16px'
-                                                        }}
-                                                    />
-                                                )}
-                                            </div>
-                                            <span className="text-[10px] font-semibold truncate w-full text-center tracking-tight">{ratio.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
+                        <SettingGroup title="Aspect Ratio">
+                            <div className="grid grid-cols-4 gap-2">
+                                {ASPECT_RATIOS.map((ratio) => (
+                                    <button
+                                        key={ratio.label}
+                                        onClick={() => handleAspectRatioChange(ratio)}
+                                        className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all gap-1 h-14 ${selectedRatioLabel === ratio.label
+                                            ? "bg-[#0081C9]/5 border-[#0081C9] text-[#0081C9] ring-1 ring-[#0081C9]/20 shadow-sm"
+                                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                            }`}
+                                    >
+                                        <div className="opacity-70 mt-0.5">
+                                            {ratio.icon === 'square' && <div className="w-3.5 h-3.5 border-2 border-current rounded-sm" />}
+                                            {ratio.icon === 'minimize' && <Icon name="minimize" size={14} />}
+                                            {ratio.icon === 'image' && <Icon name="image" size={14} />}
+                                            {!ratio.icon && (
+                                                <div
+                                                    className="border-2 border-current rounded-sm"
+                                                    style={{
+                                                        width: ratio.value && ratio.value > 1 ? '16px' : '10px',
+                                                        height: ratio.value && ratio.value > 1 ? '10px' : '16px'
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+                                        <span className="text-[9px] font-semibold truncate w-full text-center tracking-tight">{ratio.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </SettingGroup>
+
+                        <SettingGroup title="Rotation & Align">
+                            <div className="flex justify-between items-center text-xs font-semibold text-slate-700 mb-3">
+                                <span>Straighten</span>
+                                <span className="text-[#0081C9]">{rotate}°</span>
                             </div>
 
-                            {/* Rotation & Transforms */}
-                            <div className="space-y-3 mb-6">
-                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Rotation & Flip</label>
-
-                                <div className="bg-[#E8ECEF] p-4 rounded-xl space-y-4 shadow-sm border border-slate-200/50">
-                                    <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
-                                        <span>Straighten</span>
-                                        <span>{rotate}°</span>
-                                    </div>
-
-                                    <div className="relative w-full h-2 rounded-full cursor-pointer bg-slate-300">
-                                        <div
-                                            className="absolute top-0 left-1/2 h-full bg-[#0081C9] pointer-events-none"
-                                            style={{
-                                                width: `${Math.abs(rotate / 45 * 50)}%`,
-                                                transform: rotate < 0 ? 'translateX(-100%)' : 'none',
-                                                borderRadius: rotate < 0 ? '9999px 0 0 9999px' : '0 9999px 9999px 0'
-                                            }}
-                                        ></div>
-                                        <input
-                                            type="range"
-                                            min="-45"
-                                            max="45"
-                                            value={rotate > 45 || rotate < -45 ? 0 : rotate}
-                                            onChange={(e) => setRotate(Number(e.target.value))}
-                                            className="absolute top-0 left-0 w-full opacity-0 cursor-pointer z-10 h-full"
-                                        />
-                                        {/* Center tick */}
-                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-3 bg-white/50 z-0"></div>
-                                    </div>
-
-                                    <div className="flex gap-2 justify-center pt-2 border-t border-slate-300/50">
-                                        <button onClick={() => setRotate(r => r - 90)} className="flex-1 flex items-center justify-center py-1.5 rounded-lg hover:bg-white/50 text-slate-600 transition-colors" title="Rotate Left">
-                                            <Icon name="rotate-ccw" size={16} />
-                                        </button>
-                                        <div className="w-px h-6 bg-slate-300 mx-1 self-center" />
-                                        <button onClick={() => setRotate(r => r + 90)} className="flex-1 flex items-center justify-center py-1.5 rounded-lg hover:bg-white/50 text-slate-600 transition-colors" title="Rotate Right">
-                                            <Icon name="rotate-cw" size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 mt-2">
-                                    <button
-                                        onClick={() => setFlipH(!flipH)}
-                                        className={`flex items-center justify-center gap-2 h-11 rounded-lg border transition-all ${flipH ? "bg-[#0081C9]/5 border-[#0081C9]/50 text-[#0081C9] ring-1 ring-[#0081C9]/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                                    >
-                                        <Icon name="flip-horizontal" size={16} />
-                                        <span className="text-sm font-semibold">Flip H</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setFlipV(!flipV)}
-                                        className={`flex items-center justify-center gap-2 h-11 rounded-lg border transition-all ${flipV ? "bg-[#0081C9]/5 border-[#0081C9]/50 text-[#0081C9] ring-1 ring-[#0081C9]/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                                    >
-                                        <Icon name="flip-vertical" size={16} />
-                                        <span className="text-sm font-semibold">Flip V</span>
-                                    </button>
-                                </div>
+                            <div className="relative w-full h-2 rounded-full cursor-pointer bg-slate-200 mb-6">
+                                <div
+                                    className="absolute top-0 left-1/2 h-full bg-[#0081C9] pointer-events-none"
+                                    style={{
+                                        width: `${Math.abs(rotate / 45 * 50)}%`,
+                                        transform: rotate < 0 ? 'translateX(-100%)' : 'none',
+                                        borderRadius: rotate < 0 ? '9999px 0 0 9999px' : '0 9999px 9999px 0'
+                                    }}
+                                ></div>
+                                <input
+                                    type="range"
+                                    min="-45"
+                                    max="45"
+                                    value={rotate > 45 || rotate < -45 ? 0 : rotate}
+                                    onChange={(e) => setRotate(Number(e.target.value))}
+                                    className="absolute top-0 left-0 w-full opacity-0 cursor-pointer z-10 h-full"
+                                />
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-3 bg-white/50 z-0"></div>
                             </div>
 
-                            {/* Shape */}
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Shape Mask</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        onClick={() => { setIsCircular(false); setAspect(undefined); setSelectedRatioLabel("Free"); }}
-                                        className={`flex items-center justify-center gap-2 h-11 rounded-lg border transition-all ${!isCircular ? "bg-[#0081C9]/5 border-[#0081C9]/50 text-[#0081C9] ring-1 ring-[#0081C9]/20 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                                    >
-                                        <div className="w-3 h-3 border-2 border-current rounded-[2px]" />
-                                        <span className="text-sm font-semibold">Rectangle</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setIsCircular(true)}
-                                        className={`flex items-center justify-center gap-2 h-11 rounded-lg border transition-all ${isCircular ? "bg-[#0081C9]/5 border-[#0081C9]/50 text-[#0081C9] ring-1 ring-[#0081C9]/20 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                                    >
-                                        <div className="w-3.5 h-3.5 border-2 border-current rounded-full" />
-                                        <span className="text-sm font-semibold">Oval</span>
-                                    </button>
-                                </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => setRotate(r => r - 90)} className="h-10 flex-1 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors" title="Rotate Left">
+                                    <Icon name="rotate-ccw" size={16} />
+                                </button>
+                                <button onClick={() => setRotate(r => r + 90)} className="h-10 flex-1 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors" title="Rotate Right">
+                                    <Icon name="rotate-cw" size={16} />
+                                </button>
+                                <div className="w-px h-6 bg-slate-200 mx-1 self-center" />
+                                <button
+                                    onClick={() => setFlipH(!flipH)}
+                                    className={`h-10 flex-1 flex items-center justify-center rounded-lg border transition-colors ${flipH ? "bg-[#0081C9]/5 border-[#0081C9]/50 text-[#0081C9]" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                                >
+                                    <Icon name="flip-horizontal" size={16} />
+                                </button>
+                                <button
+                                    onClick={() => setFlipV(!flipV)}
+                                    className={`h-10 flex-1 flex items-center justify-center rounded-lg border transition-colors ${flipV ? "bg-[#0081C9]/5 border-[#0081C9]/50 text-[#0081C9]" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                                >
+                                    <Icon name="flip-vertical" size={16} />
+                                </button>
                             </div>
+                        </SettingGroup>
 
-                        </div>
-                    </div>
+                        <SettingGroup title="Shape Mask">
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => { setIsCircular(false); setAspect(undefined); setSelectedRatioLabel("Free"); }}
+                                    className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-lg border transition-all ${!isCircular ? "bg-[#0081C9]/5 border-[#0081C9]/50 text-[#0081C9] ring-1 ring-[#0081C9]/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                                >
+                                    <div className="w-3 h-3 border-2 border-current rounded-[2px]" />
+                                    <span className="text-sm font-semibold">Rectangle</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsCircular(true)}
+                                    className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-lg border transition-all ${isCircular ? "bg-[#0081C9]/5 border-[#0081C9]/50 text-[#0081C9] ring-1 ring-[#0081C9]/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                                >
+                                    <div className="w-3.5 h-3.5 border-2 border-current rounded-full" />
+                                    <span className="text-sm font-semibold">Oval</span>
+                                </button>
+                            </div>
+                        </SettingGroup>
+
+                    </ToolSettingsRenderer>
                 )}
             </ToolModal>
         </div>

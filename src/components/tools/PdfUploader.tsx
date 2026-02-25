@@ -14,13 +14,17 @@ export function PdfUploader({ onUpload, maxFiles = UPLOAD_LIMITS.MAX_FILES }: Pd
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => {
             if (acceptedFiles?.length > 0) {
-                onUpload(acceptedFiles);
+                if (acceptedFiles.length > maxFiles) {
+                    toast.warning(`Only the first ${maxFiles} files were added. Limit reached.`);
+                    onUpload(acceptedFiles.slice(0, maxFiles));
+                } else {
+                    onUpload(acceptedFiles);
+                }
             }
         },
         accept: {
             "application/pdf": [".pdf"],
         },
-        maxFiles: maxFiles,
         maxSize: UPLOAD_LIMITS.MAX_FILE_SIZE_BYTES,
         onDropRejected: (rejectedFiles) => {
             const error = rejectedFiles[0]?.errors[0];

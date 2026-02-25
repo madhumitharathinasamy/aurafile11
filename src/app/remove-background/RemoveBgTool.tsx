@@ -1,13 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ImageUploader } from "@/components/tools/ImageUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
-import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 import { removeBackground, Config } from "@imgly/background-removal";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { ToolSettingsRenderer, SettingGroup, ToggleRow, SelectRow, SettingRow } from "@/components/tools/ToolSettingsRenderer";
+import { ImageComparison } from "@/components/tools/ImageComparison";
+
+interface RemoveBgSettings {
+    model: "small" | "medium" | "large";
+    bgType: "transparent" | "color" | "blur";
+    bgColor: string;
+    blurAmount: number;
+    format: "image/png" | "image/jpeg";
+    edgeFeathering: boolean;
+}
+
+const DEFAULT_SETTINGS: RemoveBgSettings = {
+    model: "medium",
+    bgType: "transparent",
+    bgColor: "#FFFFFF",
+    blurAmount: 10,
+    format: "image/png",
+    edgeFeathering: true
+};
 
 export default function RemoveBgTool() {
     const {
@@ -22,8 +41,11 @@ export default function RemoveBgTool() {
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState<string>("");
-    const [showComparison, setShowComparison] = useState(false);
     const [longLoading, setLongLoading] = useState(false);
+
+    // Store original blobs and transparent cutout blobs
+    const [cutoutBlobs, setCutoutBlobs] = useState<{ [id: string]: Blob }>({});
+    const [finalUrls, setFinalUrls] = useState<{ [id: string]: string }>({});
 
     // Timeout for long loading message
     useEffect(() => {
@@ -32,16 +54,99 @@ export default function RemoveBgTool() {
             setLongLoading(false);
             timer = setTimeout(() => {
                 setLongLoading(true);
-            }, 20000); // 20 seconds
+            }, 20000);
         }
         return () => clearTimeout(timer);
     }, [isProcessing]);
 
+    // Re-render final image whenever settings change, IF we have a cutout
+    useEffect(() => {
+        if (!activeFile) return;
+        const cutout = cutoutBlobs[activeFile.id];
+        if (cutout && activeFile.settings.isDone) {
+            applyPostProcessing(activeFile.file, cutout, activeFile.settings, activeFile.id);
+        }
+    }, [activeFile?.settings, cutoutBlobs]);
+
+    // Cleanup URLs
+    useEffect(() => {
+        return () => {
+            Object.values(finalUrls).forEach(url => URL.revokeObjectURL(url));
+        };
+    }, []);
+
     const handleUpload = (uploadedFiles: File[]) => {
-        addFiles(uploadedFiles, {
-            processedUrl: null,
+        if (files.length > 0) {
+            toast.error("Background tool only supports one image at a time.");
+            return;
+        }
+        addFiles([uploadedFiles[0]], {
+            ...DEFAULT_SETTINGS,
             isDone: false
         });
+    };
+
+    const handleSettingChange = (key: keyof RemoveBgSettings, value: any) => {
+        if (!activeFile) return;
+
+        const updates = { [key]: value };
+        if (key === 'bgType' && value === 'transparent') {
+            updates.format = 'image/png';
+        } else if (key === 'bgType' && value === 'color' && activeFile.settings.format === 'image/png') {
+            updates.format = 'image/jpeg';
+        }
+
+        updateFileSettings(activeFile.id, updates);
+    };
+
+    const applyPostProcessing = async (originalFile: File, cutoutBlob: Blob, settings: any, fileId: string) => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const origImg = new Image();
+        const cutoutImg = new Image();
+
+        const loadImg = (img: HTMLImageElement, src: string) => new Promise((resolve) => {
+            img.onload = resolve;
+            img.src = src;
+        });
+
+        const origUrl = URL.createObjectURL(originalFile);
+        const cutoutUrl = URL.createObjectURL(cutoutBlob);
+
+        await Promise.all([
+            loadImg(origImg, origUrl),
+            loadImg(cutoutImg, cutoutUrl)
+        ]);
+
+        URL.revokeObjectURL(origUrl);
+        URL.revokeObjectURL(cutoutUrl);
+
+        canvas.width = origImg.width;
+        canvas.height = origImg.height;
+
+        if (settings.bgType === "color") {
+            ctx.fillStyle = settings.bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else if (settings.bgType === "blur") {
+            ctx.filter = `blur(${settings.blurAmount}px)`;
+            ctx.drawImage(origImg, 0, 0, canvas.width, canvas.height);
+            ctx.filter = "none";
+        }
+
+        ctx.drawImage(cutoutImg, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((finalBlob) => {
+            if (finalBlob) {
+                const url = URL.createObjectURL(finalBlob);
+                setFinalUrls(prev => {
+                    const old = prev[fileId];
+                    if (old) URL.revokeObjectURL(old);
+                    return { ...prev, [fileId]: url };
+                });
+            }
+        }, settings.format, 0.95);
     };
 
     const handleProcess = async () => {
@@ -52,6 +157,7 @@ export default function RemoveBgTool() {
 
         try {
             const config: Config = {
+                model: activeFile.settings.model as any,
                 progress: (key: string, current: number, total: number) => {
                     if (key === "compute:inference") {
                         const percent = Math.round((current / total) * 100);
@@ -62,12 +168,16 @@ export default function RemoveBgTool() {
             };
 
             const blob = await removeBackground(activeFile.file, config);
-            const resultUrl = URL.createObjectURL(blob);
+
+            // Store the pure transparent cutout
+            setCutoutBlobs(prev => ({ ...prev, [activeFile.id]: blob }));
 
             updateFileSettings(activeFile.id, {
-                processedUrl: resultUrl,
                 isDone: true
             });
+
+            setProgress("Applying final touches...");
+            await applyPostProcessing(activeFile.file, blob, activeFile.settings, activeFile.id);
 
             toast.success("Background removed successfully!");
         } catch (error) {
@@ -81,93 +191,44 @@ export default function RemoveBgTool() {
     };
 
     const handleDownload = () => {
-        const urlToDownload = activeFile?.settings?.processedUrl;
-        if (!urlToDownload) return;
+        const urlToDownload = finalUrls[activeFile?.id || ""];
+        if (!urlToDownload || !activeFile) return;
 
         const link = document.createElement("a");
         link.href = urlToDownload;
         const baseName = activeFile.file.name.substring(0, activeFile.file.name.lastIndexOf('.')) || activeFile.file.name;
-        link.download = `removed_bg_${baseName}.png`;
+        const ext = activeFile.settings.format === "image/png" ? "png" : "jpg";
+        link.download = `nobg_${baseName}.${ext}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
     const isDone = activeFile?.settings?.isDone;
+    const finalUrl = activeFile ? finalUrls[activeFile.id] : undefined;
 
-    // CUSTOM PREVIEW RENDERING FOR THE LEFT STAGE
     const customPreview = activeFile ? (
-        <div className="w-full h-full flex flex-col items-center justify-center relative p-4 bg-slate-100 bg-[linear-gradient(45deg,#ccc_25%,transparent_25%,transparent_75%,#ccc_75%,#ccc),linear-gradient(45deg,#ccc_25%,transparent_25%,transparent_75%,#ccc_75%,#ccc)] bg-[length:20px_20px] bg-[position:0_0,10px_10px]">
-            {isProcessing ? (
+        <div className="w-full h-full p-4 md:p-8 flex items-center justify-center relative bg-[linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa),linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa)] bg-[length:20px_20px] bg-[position:0_0,10px_10px] bg-white">
+            {isProcessing && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-md z-50 text-center p-6">
                     <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#0081C9] border-t-transparent" />
                     <p className="mt-4 font-bold text-slate-800 text-lg">{progress}</p>
-
-                    {!progress.includes("Removing") && (
-                        <p className="text-sm text-slate-500 font-medium mt-2">This may take 10–20 seconds.</p>
-                    )}
-
-                    {longLoading && (
-                        <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-200 text-amber-700 text-sm max-w-xs shadow-sm">
-                            <p className="font-bold flex items-center justify-center gap-2 mb-1">
-                                <Icon name="alert-triangle" size={16} /> Note
-                            </p>
-                            <p className="font-medium">AI model is loading slightly longer than expected on your connection.</p>
-                        </div>
-                    )}
+                    {!progress.includes("Removing") && <p className="text-sm text-slate-500 font-medium mt-2">This may take 10–20 seconds.</p>}
                 </div>
-            ) : null}
+            )}
 
-            {/* Image Container */}
-            <div className="relative max-w-full max-h-[80vh] flex items-center justify-center">
-                {isDone && activeFile.settings?.processedUrl ? (
-                    <>
-                        {/* Base: Processed Image (Always visible, sets layout) */}
-                        <img
-                            src={activeFile.settings.processedUrl}
-                            alt="Processed"
-                            className="max-w-full max-h-[60vh] md:max-h-[80vh] object-contain relative z-10 drop-shadow-md"
-                        />
-
-                        {/* Overlay: Original Image (Fades in on hover/hold) */}
-                        <img
-                            src={activeFile.previewUrl}
-                            alt="Original"
-                            className={`absolute inset-0 w-full h-full object-contain z-20 transition-opacity duration-300 ${showComparison ? "opacity-100" : "opacity-0"
-                                }`}
-                        />
-                    </>
-                ) : (
-                    /* Loading State: Blur Original */
-                    <img
-                        src={activeFile.previewUrl}
-                        alt="Processing preview"
-                        className="max-w-full max-h-[60vh] md:max-h-[80vh] object-contain opacity-50 blur-md grayscale-[20%]"
-                    />
-                )}
-            </div>
-
-            {/* Hold to Compare control - overlaying the preview at bottom center */}
-            {!isProcessing && isDone && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30">
-                    <Button
-                        variant="secondary"
-                        onPointerDown={(e) => {
-                            e.preventDefault();
-                            setShowComparison(true);
-                        }}
-                        onPointerUp={(e) => {
-                            e.preventDefault();
-                            setShowComparison(false);
-                        }}
-                        onPointerLeave={() => setShowComparison(false)}
-                        style={{ touchAction: "none" }}
-                        className="select-none active:scale-95 transition-transform shadow-lg bg-white/90 backdrop-blur border border-slate-200 font-bold text-slate-700 rounded-full px-6 py-2.5 h-auto text-sm"
-                    >
-                        <Icon name="eye" size={16} className="mr-2 text-[#0081C9]" />
-                        Hold to Compare
-                    </Button>
-                </div>
+            {isDone && finalUrl ? (
+                <ImageComparison
+                    beforeImage={activeFile.previewUrl}
+                    afterImage={finalUrl}
+                />
+            ) : (
+                <img
+                    src={activeFile.previewUrl}
+                    alt="Preview"
+                    className="max-w-full max-h-full object-contain drop-shadow-sm pointer-events-none"
+                    style={{ opacity: isProcessing ? 0.3 : 1 }}
+                />
             )}
         </div>
     ) : null;
@@ -178,11 +239,10 @@ export default function RemoveBgTool() {
                 <div className="mt-6 w-full max-w-7xl mx-auto">
                     <div className="rounded-xl border border-border bg-white shadow-xl p-4 md:p-8">
                         <ImageUploader onUpload={handleUpload} />
-
                         <div className="mt-8 rounded-xl bg-[#0081C9]/5 p-4 text-sm text-[#0081C9] border border-[#0081C9]/20 flex gap-3 mx-auto max-w-2xl">
                             <Icon name="wand-2" size={20} className="flex-shrink-0 mt-0.5" />
                             <div>
-                                <strong>Automatic AI:</strong> Background is removed entirely locally within your browser using WebGL and WASM. Your image is never uploaded to any server.
+                                <strong>100% Client-Side Privacy:</strong> Backgrounds are removed securely on your device. Images are never uploaded to a cloud server.
                             </div>
                         </div>
                     </div>
@@ -198,79 +258,124 @@ export default function RemoveBgTool() {
                 setActiveIndex={setActiveIndex}
                 onPrimaryAction={isDone ? handleDownload : handleProcess}
                 primaryActionText={
-                    isDone ? (
-                        <span className="flex items-center justify-center gap-2">
-                            <Icon name="download" size={18} />
-                            Download PNG
-                        </span>
-                    ) : (
-                        <span className="flex items-center justify-center gap-2">
-                            <Icon name="wand-2" size={18} />
-                            Remove Background
-                        </span>
-                    )
+                    <span className="flex items-center justify-center gap-2">
+                        <Icon name={isDone ? "download" : "wand-2"} size={18} />
+                        {isDone ? "Download Image" : "Remove Background"}
+                    </span>
                 }
                 isProcessing={isProcessing}
                 customPreview={customPreview}
             >
-                {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
-                    <div className="space-y-8">
-                        <div>
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-slate-800 font-sans">AI Isolation</h2>
-                                {isDone && (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                                        <Icon name="check-circle" size={14} />
-                                        Complete
-                                    </span>
-                                )}
+                    <ToolSettingsRenderer
+                        title="Background Options"
+                        isBatchMode={false}
+                    >
+                        {/* Status Check */}
+                        <div className={`p-4 rounded-xl border flex items-center gap-4 transition-colors mb-6 shadow-sm ${isDone ? 'bg-green-50 border-green-200' : 'bg-[#E8ECEF] border-transparent'}`}>
+                            <div className={`p-2 rounded-full ${isDone ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-500'}`}>
+                                <Icon name={isDone ? "check" : "image"} size={20} />
                             </div>
+                            <div>
+                                <h3 className={`font-bold text-sm ${isDone ? 'text-green-800' : 'text-slate-800'}`}>
+                                    {isDone ? "Foreground Isolated!" : "Ready for Processing"}
+                                </h3>
+                                <p className="text-xs font-medium text-slate-500 mt-0.5">
+                                    {isDone ? "Tweak the background or download." : "Configure settings and click Remove."}
+                                </p>
+                            </div>
+                        </div>
 
-                            {/* File Info Block */}
-                            <div className="bg-[#E8ECEF] rounded-xl p-4 flex flex-col gap-3 shadow-sm border border-transparent">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-white p-2 rounded-lg shadow-sm">
-                                        <Icon name="image" size={24} className="text-[#0081C9]" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-slate-800 truncate text-sm" title={activeFile.file.name}>
-                                            {activeFile.file.name}
-                                        </p>
-                                        <p className="text-xs text-slate-500 mt-0.5 font-medium flex gap-2">
-                                            <span>Format: PNG</span>
-                                        </p>
-                                    </div>
+                        <SettingGroup title="AI Model Setup">
+                            <SelectRow
+                                label="AI Model Detail"
+                                value={activeFile.settings?.model}
+                                onChange={(val) => handleSettingChange("model", val)}
+                                disabled={isDone}
+                                options={[
+                                    { label: "Medium (Recommended)", value: "medium" },
+                                    { label: "Small (Faster, Less detail)", value: "small" },
+                                    { label: "Large (Slower, Highest detail)", value: "large" }
+                                ]}
+                            />
+                            <p className="text-xs text-slate-500 mt-1">If the result misses small details like hair, try Large mode and re-process.</p>
+
+                            {isDone && (
+                                <button
+                                    onClick={() => updateFileSettings(activeFile.id, { isDone: false })}
+                                    className="mt-3 w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors border border-slate-200"
+                                >
+                                    Re-Run AI Model
+                                </button>
+                            )}
+                        </SettingGroup>
+
+                        <SettingGroup title="Output Background">
+                            <SelectRow
+                                label="Background Type"
+                                value={activeFile.settings?.bgType}
+                                onChange={(val) => handleSettingChange("bgType", val)}
+                                options={[
+                                    { label: "Transparent", value: "transparent" },
+                                    { label: "Solid Color", value: "color" },
+                                    { label: "Blur Original", value: "blur" }
+                                ]}
+                            />
+
+                            {activeFile.settings?.bgType === "color" && (
+                                <div className="flex items-center gap-3 w-full text-sm pt-2">
+                                    <label className="font-medium text-slate-700 flex-1">
+                                        Color Value
+                                    </label>
+                                    <input
+                                        type="color"
+                                        value={activeFile.settings?.bgColor}
+                                        onChange={(e) => handleSettingChange("bgColor", e.target.value)}
+                                        className="h-8 w-12 cursor-pointer border-none bg-transparent rounded-lg"
+                                    />
                                 </div>
+                            )}
+
+                            {activeFile.settings?.bgType === "blur" && (
+                                <SettingRow label="Blur Intensity" value={`${activeFile.settings?.blurAmount}px`}>
+                                    <input
+                                        type="range"
+                                        min="2"
+                                        max="50"
+                                        value={activeFile.settings?.blurAmount}
+                                        onChange={(e) => handleSettingChange("blurAmount", parseInt(e.target.value))}
+                                        className="w-full accent-[#0081C9]"
+                                    />
+                                </SettingRow>
+                            )}
+                        </SettingGroup>
+
+                        <SettingGroup title="Export Format">
+                            <SelectRow
+                                label="Format"
+                                value={activeFile.settings?.format}
+                                onChange={(val) => handleSettingChange("format", val)}
+                                disabled={activeFile.settings?.bgType === "transparent"} // Force PNG if transparent
+                                options={[
+                                    { label: "PNG Image", value: "image/png" },
+                                    { label: "JPG Image", value: "image/jpeg" }
+                                ]}
+                            />
+                            {activeFile.settings?.bgType === "transparent" && (
+                                <p className="text-[10px] uppercase font-bold text-slate-400 mt-1">Locked to PNG to preserve transparency</p>
+                            )}
+
+                            <div className="pt-2">
+                                <ToggleRow
+                                    label="Edge Feathering"
+                                    description="Smooth hard edges slightly"
+                                    checked={activeFile.settings?.edgeFeathering}
+                                    onChange={(val) => handleSettingChange("edgeFeathering", val)}
+                                />
                             </div>
-                        </div>
+                        </SettingGroup>
 
-                        {/* Settings / Results Data */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-semibold text-slate-800">Status Output</h3>
-
-                            <div className={`p-4 rounded-xl border flex items-start gap-3 transition-colors ${isDone ? 'bg-[#0081C9]/5 border-[#0081C9]/20' : 'bg-[#E8ECEF] border-transparent animate-pulse'
-                                }`}>
-                                <Icon name={isDone ? "aperture" : "loader-2"} size={18} className={`${isDone ? 'text-[#0081C9]' : 'text-slate-500 animate-spin'} mt-0.5`} />
-                                <div>
-                                    <p className={`text-sm font-semibold ${isDone ? 'text-[#0081C9]' : 'text-slate-600'}`}>
-                                        {isDone ? 'Foreground Isolated' : 'Processing Image...'}
-                                    </p>
-                                    <p className="text-xs text-slate-500 mt-1 font-medium">
-                                        {isDone
-                                            ? 'The background has been removed. The output preserves transparency.'
-                                            : 'Please wait while the AI model separates the foreground from the background.'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Security Badge inline */}
-                        <div className="flex items-center gap-2 justify-center text-[10px] text-slate-400 font-medium pt-4 border-t border-slate-100">
-                            <Icon name="zap" size={14} />
-                            <span>Locally powered by @imgly/background-removal</span>
-                        </div>
-                    </div>
+                    </ToolSettingsRenderer>
                 )}
             </ToolModal>
         </div>

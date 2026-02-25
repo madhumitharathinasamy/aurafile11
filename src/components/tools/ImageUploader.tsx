@@ -31,11 +31,16 @@ export function ImageUploader({
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => {
             if (acceptedFiles?.length > 0) {
-                onUpload(acceptedFiles);
+                const limit = multiple ? maxFiles : 1;
+                if (acceptedFiles.length > limit) {
+                    toast.warning(`Only the first ${limit} files were added. Limit reached.`);
+                    onUpload(acceptedFiles.slice(0, limit));
+                } else {
+                    onUpload(acceptedFiles);
+                }
             }
         },
         accept,
-        maxFiles: multiple ? maxFiles : 1,
         maxSize,
         onDropRejected: (rejectedFiles) => {
             const error = rejectedFiles[0]?.errors[0];

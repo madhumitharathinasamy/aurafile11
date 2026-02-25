@@ -52,3 +52,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local test assets and logs
+test-images/
+generate-test-images.js
+generate-edge-test-images.js
+eslint-results.json
+eslint-errors.txt
+lint-output.txt
+tsc-output.txt

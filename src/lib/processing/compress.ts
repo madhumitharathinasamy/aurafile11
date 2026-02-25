@@ -5,110 +5,132 @@ export async function processCompressImage(
     quality: number,
     originalFormat: string,
     targetFormat?: string,
-    backgroundColor?: string
+    backgroundColor?: string,
+    advancedSettings?: {
+        targetMode?: boolean;
+        targetSizeUnit?: string;
+        targetSizeValue?: string;
+        strategy?: string; // 'lossy' | 'lossless' | 'auto'
+        preserveMetadata?: boolean;
+        chromaSubsampling?: string; // '4:4:4' | '4:2:0' | 'auto'
+    }
 ): Promise<{ buffer: Buffer; format: string; size: number }> {
     try {
-        // Only enable animation for formats that support it to prevent issues with BMP/JPEG
         const isAnimatable = originalFormat.includes("gif") || originalFormat.includes("webp") || originalFormat.includes("avif");
-        let pipeline = sharp(buffer, { failOnError: false, animated: isAnimatable });
 
-        // Determine the output format: use targetFormat if provided, otherwise default to originalFormat logic
-        // Normalized format strings: "jpeg", "png", "webp", "gif", "avif", "tiff"
         let format = targetFormat || "jpeg";
-        // const isConversion = !!targetFormat; // Unused
 
-        console.log(`Processing image: Input=${originalFormat}, Output=${format}, Quality=${quality}`);
-
-        // If no target format specified, infer from original format
         if (!targetFormat) {
             if (originalFormat.includes("png")) format = "png";
             else if (originalFormat.includes("webp")) format = "webp";
             else if (originalFormat.includes("gif")) format = "gif";
             else if (originalFormat.includes("avif")) format = "avif";
             else if (originalFormat.includes("tiff")) format = "tiff";
-            else if (originalFormat.includes("bmp")) format = "jpeg"; // BMP -> JPEG (Sharp doesn't write BMP)
+            else if (originalFormat.includes("bmp")) format = "jpeg";
             else format = "jpeg";
         }
 
-        // Apply compression settings based on the determined format
-        if (format === "png") {
-            pipeline = pipeline.png({
-                quality: quality,
-                compressionLevel: 9,
-                palette: true
-            });
-        } else if (format === "webp") {
-            pipeline = pipeline.webp({ quality: quality });
-        } else if (format === "gif") {
-            // GIF compression: reuse existing palette often helps size, but re-optimizing with colours
-            // Only use gif options if it was animated or explicit gif
-            pipeline = pipeline.gif({
-                colours: 128, // Reduce colors to compress
-            });
-        } else if (format === "avif") {
-            pipeline = pipeline.avif({ quality: quality });
-        } else if (format === "tiff") {
-            // Hybrid TIFF Compression Logic:
-            // > 90%: Use LZW (Lossless) - larger file size, perfect quality
-            // <= 90%: Use JPEG (Lossy) - significantly smaller file size, adjustable quality
-            if (quality > 90) {
-                pipeline = pipeline.tiff({ compression: "lzw" });
-            } else {
-                pipeline = pipeline.tiff({ quality: quality, compression: "jpeg" });
-            }
-        } else {
-            // JPEG / JPG
-            format = "jpeg";
-            if (backgroundColor) {
-                // Flatten transparent images onto the chosen background color before JPEG compression
-                pipeline = pipeline.flatten({ background: backgroundColor });
-            }
-            pipeline = pipeline.jpeg({ quality: quality, mozjpeg: true });
-        }
+        const runCompression = async (q: number) => {
+            let pipeline = sharp(buffer, { failOnError: false, animated: isAnimatable });
 
-        // Special handling for BMP and ICO which Sharp doesn't output directly
-        if (format === "bmp" || format === "ico") {
-            const Jimp = require("jimp");
-            const image = await Jimp.read(buffer);
-
-            if (format === "bmp") {
-                const mime = Jimp.MIME_BMP;
-                const bufferBmp = await image.getBufferAsync(mime);
-                return {
-                    buffer: bufferBmp,
-                    format: "bmp",
-                    size: bufferBmp.length
-                };
+            if (!advancedSettings || advancedSettings.preserveMetadata !== false) {
+                pipeline = pipeline.withMetadata();
             }
 
-            if (format === "ico") {
-                // ICO typically needs resizing to standard icon sizes (e.g. 256x256 max)
-                if (image.bitmap.width > 256 || image.bitmap.height > 256) {
-                    image.resize(256, Jimp.AUTO);
+            const chroma = advancedSettings?.chromaSubsampling === "4:4:4" ? "4:4:4" : "4:2:0";
+            const isLossless = advancedSettings?.strategy === "lossless";
+
+            if (format === "png") {
+                pipeline = pipeline.png({
+                    quality: q,
+                    compressionLevel: 9,
+                    palette: !isLossless
+                });
+            } else if (format === "webp") {
+                pipeline = pipeline.webp({ quality: q, lossless: isLossless });
+            } else if (format === "gif") {
+                pipeline = pipeline.gif({ colours: Math.max(2, Math.floor((q / 100) * 256)) });
+            } else if (format === "avif") {
+                pipeline = pipeline.avif({ quality: q, lossless: isLossless });
+            } else if (format === "tiff") {
+                if (isLossless || q > 90) {
+                    pipeline = pipeline.tiff({ compression: "lzw" });
+                } else {
+                    pipeline = pipeline.tiff({ quality: q, compression: "jpeg" });
                 }
-                // Use BMP MIME type as valid source for .ico extension usage in simple contexts
-                const mime = Jimp.MIME_BMP;
-                const bufferBmp = await image.getBufferAsync(mime);
+            } else {
+                format = "jpeg";
+                if (backgroundColor) {
+                    pipeline = pipeline.flatten({ background: backgroundColor });
+                }
+                pipeline = pipeline.jpeg({ quality: q, mozjpeg: true, chromaSubsampling: chroma });
+            }
+
+            if (format === "bmp" || format === "ico") {
+                const Jimp = require("jimp");
+                const image = await Jimp.read(buffer);
+
+                if (format === "bmp") {
+                    const mime = Jimp.MIME_BMP;
+                    const bufferBmp = await image.getBufferAsync(mime);
+                    return { buffer: bufferBmp, format: "bmp", size: bufferBmp.length };
+                }
+
+                if (format === "ico") {
+                    if (image.bitmap.width > 256 || image.bitmap.height > 256) {
+                        image.resize(256, Jimp.AUTO);
+                    }
+                    const mime = Jimp.MIME_BMP;
+                    const bufferBmp = await image.getBufferAsync(mime);
+                    return { buffer: bufferBmp, format: "ico", size: bufferBmp.length };
+                }
+            }
+
+            if (format !== "bmp" && format !== "ico") {
+                const outputBuffer = await pipeline.toBuffer();
                 return {
-                    buffer: bufferBmp,
-                    format: "ico",
-                    size: bufferBmp.length
+                    buffer: outputBuffer,
+                    format: format,
+                    size: outputBuffer.length
                 };
+            }
+
+            throw new Error(`Output format ${format} not supported`);
+        };
+
+        if (advancedSettings?.targetMode && advancedSettings.targetSizeValue) {
+            const numVal = parseFloat(advancedSettings.targetSizeValue);
+            if (!isNaN(numVal) && numVal > 0) {
+                const targetBytes = numVal * (advancedSettings.targetSizeUnit === "MB" ? 1024 * 1024 : 1024);
+
+                let minQ = 1;
+                let maxQ = 100;
+                let bestResult = null;
+                let iterations = 0;
+
+                while (minQ <= maxQ && iterations < 7) {
+                    const midQ = Math.floor((minQ + maxQ) / 2);
+                    const result = await runCompression(midQ);
+
+                    if (result.size <= targetBytes) {
+                        bestResult = result;
+                        minQ = midQ + 1;
+                    } else {
+                        maxQ = midQ - 1;
+                    }
+                    iterations++;
+                }
+                if (bestResult) {
+                    return bestResult;
+                } else {
+                    // Even at quality 1, the file is larger than the target size.
+                    // Return the minimum possible quality result rather than failing.
+                    return await runCompression(1);
+                }
             }
         }
 
-        // Return for Sharp pipeline (non-BMP/ICO)
-        if (format !== "bmp" && format !== "ico") {
-            const outputBuffer = await pipeline.toBuffer();
-            return {
-                buffer: outputBuffer,
-                format: format,
-                size: outputBuffer.length
-            };
-        }
-
-        // Fallback if we fell through (shouldn't happen for supported formats)
-        throw new Error(`Output format ${format} not supported`);
+        return await runCompression(quality);
     } catch (error: any) {
         console.error("Compression Error:", error);
         // Better error message

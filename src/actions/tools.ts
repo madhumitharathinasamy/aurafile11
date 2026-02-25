@@ -18,10 +18,22 @@ export type CompressActionResult = {
 export async function compressImageAction(formData: FormData): Promise<CompressActionResult> {
     try {
         const file = formData.get("file") as File;
-        const quality = parseInt(formData.get("quality") as string);
-        const format = formData.get("format") as string; // Optional target format
+        const qualityRaw = formData.get("quality");
+        const quality = qualityRaw ? parseInt(qualityRaw as string) : 80;
 
-        if (!file || !quality) {
+        const outputFormatRaw = formData.get("outputFormat") as string;
+        const format = outputFormatRaw && outputFormatRaw !== "original" ? outputFormatRaw : undefined;
+
+        const advancedSettings = {
+            targetMode: formData.get("targetMode") === "true",
+            targetSizeUnit: formData.get("targetSizeUnit") as string,
+            targetSizeValue: formData.get("targetSizeValue") as string,
+            strategy: formData.get("strategy") as string || "auto",
+            preserveMetadata: formData.get("preserveMetadata") === "true",
+            chromaSubsampling: formData.get("chromaSubsampling") as string || "auto"
+        };
+
+        if (!file) {
             return { success: false, error: "Missing required fields" };
         }
 
@@ -32,7 +44,7 @@ export async function compressImageAction(formData: FormData): Promise<CompressA
             throw new Error(`Upload truncated! Received ${buffer.length} of ${file.size} bytes. Please restart the server to apply limit changes.`);
         }
 
-        const result = await processCompressImage(buffer, quality, file.type, format);
+        const result = await processCompressImage(buffer, quality, file.type, format, undefined, advancedSettings);
 
         const base64 = `data:image/${result.format};base64,${result.buffer.toString(
             "base64"

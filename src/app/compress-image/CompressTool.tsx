@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ImageUploader } from "@/components/tools/ImageUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
 import { ImageComparison } from "@/components/tools/ImageComparison";
@@ -8,6 +8,44 @@ import { Icon } from "@/components/ui/Icon";
 import { compressImageAction } from "@/actions/tools";
 import { toast } from "sonner";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import { ToolSettingsRenderer, SettingGroup, SettingRow, ToggleRow, SelectRow } from "@/components/tools/ToolSettingsRenderer";
+
+type CompressStrategy = "lossy" | "lossless" | "auto";
+type ChromaSubsampling = "4:4:4" | "4:2:0" | "auto";
+
+interface CompressSettings {
+    quality: number;
+    targetMode: boolean;
+    targetSizeUnit: "KB" | "MB";
+    targetSizeValue: string;
+    outputFormat: string;
+    strategy: CompressStrategy;
+    preserveMetadata: boolean;
+    chromaSubsampling: ChromaSubsampling;
+
+    // Output stats
+    originalSize: number;
+    compressedSize: number;
+    isCompressed: boolean;
+    compressedUrl: string | null;
+}
+
+const DEFAULT_COMPRESS_SETTINGS: CompressSettings = {
+    quality: 80,
+    targetMode: false,
+    targetSizeUnit: "MB",
+    targetSizeValue: "",
+    outputFormat: "original",
+    strategy: "auto",
+    preserveMetadata: true,
+    chromaSubsampling: "auto",
+    originalSize: 0,
+    compressedSize: 0,
+    isCompressed: false,
+    compressedUrl: null
+};
 
 export default function CompressTool() {
     const {
@@ -17,57 +55,119 @@ export default function CompressTool() {
         activeFile,
         addFiles,
         clearAll,
-        updateFileSettings
+        updateFileSettings,
+        updateAllFileSettings,
+        isBatchMode
     } = useFileUpload([]);
 
     const [isProcessing, setIsProcessing] = useState(false);
+    const [applyToAll, setApplyToAll] = useState(false);
+
+    // Track relevant settings for auto-preview
+    const activeSettingsStr = activeFile ? JSON.stringify({
+        q: activeFile.settings.quality,
+        tm: activeFile.settings.targetMode,
+        tsv: activeFile.settings.targetSizeValue,
+        tsu: activeFile.settings.targetSizeUnit,
+        f: activeFile.settings.outputFormat,
+        s: activeFile.settings.strategy,
+        pm: activeFile.settings.preserveMetadata,
+        cs: activeFile.settings.chromaSubsampling
+    }) : "";
+
+    // Debounced auto-preview
+    useEffect(() => {
+        if (!activeFile) return;
+        // Don't auto-run if it's already compressed (prevents infinite loop after successful compression)
+        if (activeFile.settings.isCompressed) return;
+        // Don't auto-run if target mode is enabled but no value is provided
+        if (activeFile.settings.targetMode && !activeFile.settings.targetSizeValue) return;
+
+        const timer = setTimeout(async () => {
+            setIsProcessing(true);
+            await processSingleFile(activeFile);
+            setIsProcessing(false);
+        }, 600);
+
+        return () => clearTimeout(timer);
+    }, [activeSettingsStr, activeFile?.id]);
 
     const handleUpload = async (uploadedFiles: File[]) => {
-        // We initialize with default quality 80
-        addFiles(uploadedFiles, {
-            quality: 80,
-            originalSize: 0,
-            compressedSize: 0,
-            isCompressed: false,
-            compressedUrl: null
-        });
+        addFiles(uploadedFiles, { ...DEFAULT_COMPRESS_SETTINGS });
+    };
 
-        // Set accurate initial sizes
-        setTimeout(() => {
-            uploadedFiles.forEach((file) => {
-                const target = files.find(f => f.file.name === file.name); // basic mapping
-                // For a more exact mapping, useFileUpload would ideally return the new UUIDs 
-                // but for our single/batch flow this is usually sufficient for updating sizes.
-            });
-        }, 100);
+    const handleSettingChange = (key: keyof CompressSettings, value: any) => {
+        if (!activeFile) return;
+
+        const updates = { [key]: value, isCompressed: false };
+        if (applyToAll && isBatchMode) {
+            updateAllFileSettings(updates);
+        } else {
+            updateFileSettings(activeFile.id, updates);
+        }
     };
 
     const handleCompress = async () => {
-        if (!activeFile) return;
+        if (applyToAll && isBatchMode) {
+            setIsProcessing(true);
+            let successCount = 0;
+            let failCount = 0;
 
-        setIsProcessing(true);
+            for (const file of files) {
+                const success = await processSingleFile(file);
+                if (success) successCount++;
+                else failCount++;
+            }
+
+            setIsProcessing(false);
+            if (failCount === 0) {
+                toast.success(`Successfully compressed all ${successCount} images!`);
+            } else {
+                toast.warning(`Finished: ${successCount} successful, ${failCount} failed.`);
+            }
+        } else {
+            if (!activeFile) return;
+            setIsProcessing(true);
+            const success = await processSingleFile(activeFile);
+            setIsProcessing(false);
+            if (success) {
+                toast.success("Image compressed successfully!");
+            }
+        }
+    };
+
+    const processSingleFile = async (currentFile: any) => {
         try {
             const formData = new FormData();
-            formData.append("file", activeFile.file);
-            formData.append("quality", String(activeFile.settings.quality));
+            formData.append("file", currentFile.file);
+            formData.append("quality", String(currentFile.settings.quality));
+
+            // Append new advanced settings
+            formData.append("targetMode", String(currentFile.settings.targetMode));
+            formData.append("targetSizeUnit", currentFile.settings.targetSizeUnit);
+            formData.append("targetSizeValue", currentFile.settings.targetSizeValue);
+            formData.append("outputFormat", currentFile.settings.outputFormat);
+            formData.append("strategy", currentFile.settings.strategy);
+            formData.append("preserveMetadata", String(currentFile.settings.preserveMetadata));
+            formData.append("chromaSubsampling", currentFile.settings.chromaSubsampling);
 
             const res = await compressImageAction(formData);
 
             if (res.success && res.data) {
-                updateFileSettings(activeFile.id, {
+                updateFileSettings(currentFile.id, {
                     compressedSize: res.newSize,
                     isCompressed: true,
                     compressedUrl: res.data
                 });
-                toast.success("Image compressed successfully!");
+                return true;
             } else {
-                toast.error(`Failed: ${res.error}`);
+                toast.error(`Failed to compress ${currentFile.file.name}: ${res.error}`);
+                return false;
             }
         } catch (e) {
             console.error(e);
-            toast.error("Error compressing image.");
-        } finally {
-            setIsProcessing(false);
+            toast.error(`Error compressing ${currentFile.file.name}.`);
+            return false;
         }
     };
 
@@ -76,8 +176,75 @@ export default function CompressTool() {
         const k = 1024;
         const sizes = ["KB", "MB", "GB"];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
-        // Show in KB for standard small sizes like "25.6 KB"
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+    };
+
+    const isAllCompressed = files.length > 0 && files.every(f => f.settings.isCompressed && f.settings.compressedUrl);
+    const isCurrentCompressed = activeFile && activeFile.settings.isCompressed && activeFile.settings.compressedUrl;
+
+    const handleDownload = async () => {
+        try {
+            if (applyToAll && isBatchMode && isAllCompressed) {
+                toast.info("Preparing ZIP file...");
+                const zip = new JSZip();
+
+                for (const fileMeta of files) {
+                    if (!fileMeta.settings.compressedUrl) continue;
+                    const response = await fetch(fileMeta.settings.compressedUrl);
+                    const blob = await response.blob();
+
+                    const originalName = fileMeta.file.name.substring(0, fileMeta.file.name.lastIndexOf('.')) || fileMeta.file.name;
+                    // Format extraction could be improved, but usually compressedUrl has correct mime/extension info. 
+                    // Let's use the explicit target format or default to jpeg/png based on blob type.
+                    let targetExt = "jpg";
+                    if (fileMeta.settings.outputFormat === "original") {
+                        targetExt = fileMeta.file.type.split('/')[1] === "png" ? "png" : "jpg";
+                    } else if (fileMeta.settings.outputFormat !== "jpeg") {
+                        targetExt = fileMeta.settings.outputFormat; // png, webp
+                    }
+
+                    zip.file(`${originalName}-compressed.${targetExt}`, blob);
+                }
+
+                const content = await zip.generateAsync({ type: "blob" });
+                saveAs(content, "aurafile-compressed.zip");
+                toast.success("Downloaded ZIP file!");
+            } else if (activeFile && isCurrentCompressed) {
+                const response = await fetch(activeFile.settings.compressedUrl!);
+                const blob = await response.blob();
+
+                let targetExt = "jpg";
+                if (activeFile.settings.outputFormat === "original") {
+                    targetExt = activeFile.file.type.split('/')[1] === "png" ? "png" : "jpg";
+                } else if (activeFile.settings.outputFormat !== "jpeg") {
+                    targetExt = activeFile.settings.outputFormat;
+                }
+                const originalName = activeFile.file.name.substring(0, activeFile.file.name.lastIndexOf('.')) || activeFile.file.name;
+
+                saveAs(blob, `${originalName}-compressed.${targetExt}`);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to download compressed images.");
+        }
+    };
+
+    const getPrimaryActionText = () => {
+        if (isProcessing) return "Compressing...";
+        if (applyToAll && isBatchMode) {
+            return isAllCompressed ? `Download All (${files.length} Zipped)` : `Compress All (${files.length})`;
+        }
+        return isCurrentCompressed ? "Download Image" : "Compress Active Image";
+    };
+
+    const handlePrimaryAction = () => {
+        if (applyToAll && isBatchMode && isAllCompressed) {
+            handleDownload();
+        } else if (!applyToAll && isCurrentCompressed) {
+            handleDownload();
+        } else {
+            handleCompress();
+        }
     };
 
     return (
@@ -93,15 +260,15 @@ export default function CompressTool() {
             <ToolModal
                 isOpen={files.length > 0}
                 onClose={clearAll}
-                title="Edit Image"
+                title="Compress Image"
                 files={files}
                 activeIndex={activeIndex}
                 setActiveIndex={setActiveIndex}
-                onPrimaryAction={handleCompress}
+                onPrimaryAction={handlePrimaryAction}
                 primaryActionText={
                     <span className="flex items-center justify-center gap-2">
-                        <Icon name="shrink" size={18} />
-                        Compress
+                        <Icon name={((applyToAll && isBatchMode && isAllCompressed) || (!applyToAll && isCurrentCompressed)) ? "download" : "shrink"} size={18} />
+                        {getPrimaryActionText()}
                     </span>
                 }
                 isProcessing={isProcessing}
@@ -118,67 +285,135 @@ export default function CompressTool() {
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
-                    <div className="space-y-8">
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-800 mb-6 font-sans">Compress Image</h2>
-
-                            {/* Size comparison box */}
-                            <div className="bg-[#E8ECEF] rounded-xl p-4 flex items-center justify-between shadow-sm">
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-medium text-slate-500 mb-1">Original</span>
-                                    <span className="text-base font-bold text-slate-800">
-                                        {formatSize(activeFile.file.size)}
-                                    </span>
-                                </div>
-                                <div className="text-slate-500">
-                                    <Icon name="arrow-right" size={16} strokeWidth={2.5} />
-                                </div>
-                                <div className="flex flex-col text-right">
-                                    <span className="text-xs font-medium text-slate-500 mb-1">Compressed</span>
-                                    <span className="text-base font-bold text-slate-800">
-                                        {activeFile.settings.isCompressed ? formatSize(activeFile.settings.compressedSize) : "—"}
-                                    </span>
-                                </div>
+                    <ToolSettingsRenderer
+                        title="Compression Settings"
+                        isBatchMode={isBatchMode}
+                        applyToAll={applyToAll}
+                        onApplyToAllChange={setApplyToAll}
+                    >
+                        {/* Summary Card */}
+                        <div className="bg-[#E8ECEF] rounded-xl p-4 flex items-center justify-between shadow-sm">
+                            <div className="flex flex-col">
+                                <span className="text-xs font-medium text-slate-500 mb-1">Original</span>
+                                <span className="text-sm font-bold text-slate-800">
+                                    {formatSize(activeFile.file.size)}
+                                </span>
+                            </div>
+                            <div className="text-slate-400">
+                                <Icon name="arrow-right" size={16} strokeWidth={2.5} />
+                            </div>
+                            <div className="flex flex-col text-right">
+                                <span className="text-xs font-medium text-slate-500 mb-1">Compressed</span>
+                                <span className="text-sm font-bold text-slate-800">
+                                    {activeFile.settings.isCompressed ? formatSize(activeFile.settings.compressedSize) : "—"}
+                                </span>
                             </div>
                         </div>
 
-                        {/* Quality Slider exactly matching mockup */}
-                        <div>
-                            <div className="flex justify-between items-center mb-4">
-                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Quality</label>
-                                <span className="text-sm font-semibold text-slate-800">{activeFile.settings.quality}%</span>
-                            </div>
+                        {/* Core Compression Group */}
+                        <SettingGroup title="Quality & Sizing">
+                            <ToggleRow
+                                label="Target File Size"
+                                description="Automatically adjust quality to hit target size"
+                                checked={activeFile.settings.targetMode}
+                                onChange={(val) => handleSettingChange("targetMode", val)}
+                            />
 
-                            <div className="relative w-full h-2 rounded-full cursor-pointer bg-slate-700">
-                                {/* The filled portion */}
-                                <div
-                                    className="absolute top-0 left-0 h-full bg-[#0081C9] rounded-l-full pointer-events-none"
-                                    style={{ width: `${activeFile.settings.quality}%` }}
-                                ></div>
+                            {activeFile.settings.targetMode ? (
+                                <div className="flex items-center gap-3 pt-2">
+                                    <input
+                                        type="number"
+                                        placeholder="Target size"
+                                        value={activeFile.settings.targetSizeValue}
+                                        onChange={(e) => handleSettingChange("targetSizeValue", e.target.value)}
+                                        className="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-[#0081C9] focus:border-[#0081C9] block p-2 outline-none shadow-sm"
+                                    />
+                                    <select
+                                        value={activeFile.settings.targetSizeUnit}
+                                        onChange={(e) => handleSettingChange("targetSizeUnit", e.target.value)}
+                                        className="bg-white border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-[#0081C9] focus:border-[#0081C9] block p-2 outline-none shadow-sm w-[80px]"
+                                    >
+                                        <option value="KB">KB</option>
+                                        <option value="MB">MB</option>
+                                    </select>
+                                </div>
+                            ) : (
+                                <SettingRow label="Quality Level" value={`${activeFile.settings.quality}%`}>
+                                    <div className="relative w-full h-2 rounded-full cursor-pointer bg-slate-200 mt-2 mb-1">
+                                        <div
+                                            className="absolute top-0 left-0 h-full bg-[#0081C9] rounded-l-full pointer-events-none"
+                                            style={{ width: `${activeFile.settings.quality}%` }}
+                                        ></div>
+                                        <input
+                                            type="range"
+                                            min="1"
+                                            max="100"
+                                            value={activeFile.settings.quality}
+                                            onChange={(e) => handleSettingChange("quality", parseInt(e.target.value))}
+                                            className="absolute top-0 left-0 w-full opacity-0 cursor-pointer z-10 h-full"
+                                        />
+                                        <div
+                                            className="absolute top-1/2 -translate-y-1/2 h-4 w-4 bg-white rounded-full border-[2px] border-[#0081C9] shadow-sm pointer-events-none z-0 mt-[1px]"
+                                            style={{ left: `calc(${activeFile.settings.quality}% - 8px)` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wide">
+                                        <span>Smaller file</span>
+                                        <span>Higher quality</span>
+                                    </div>
+                                </SettingRow>
+                            )}
+                        </SettingGroup>
 
-                                <input
-                                    type="range"
-                                    min="1"
-                                    max="100"
-                                    value={activeFile.settings.quality}
-                                    onChange={(e) => updateFileSettings(activeFile.id, { quality: parseInt(e.target.value), isCompressed: false })}
-                                    className="absolute top-0 left-0 w-full opacity-0 cursor-pointer z-10 h-full"
-                                    style={{ appearance: 'none', WebkitAppearance: 'none' }}
-                                />
+                        {/* Format & Ext */}
+                        <SettingGroup title="Format & Strategy">
+                            <SelectRow
+                                label="Output Format"
+                                value={activeFile.settings.outputFormat}
+                                onChange={(val) => handleSettingChange("outputFormat", val)}
+                                options={[
+                                    { label: "Same as Original", value: "original" },
+                                    { label: "Convert to JPG", value: "jpeg" },
+                                    { label: "Convert to PNG", value: "png" },
+                                    { label: "Convert to WebP", value: "webp" }
+                                ]}
+                            />
 
-                                {/* Custom Thumb visually tracking the input */}
-                                <div
-                                    className="absolute top-1/2 -translate-y-1/2 h-5 w-5 bg-white rounded-full border-2 border-[#0081C9] shadow-sm pointer-events-none z-0 mt-[1px]"
-                                    style={{ left: `calc(${activeFile.settings.quality}% - 10px)` }}
-                                ></div>
-                            </div>
+                            <SelectRow
+                                label="Compression Strategy"
+                                value={activeFile.settings.strategy}
+                                onChange={(val) => handleSettingChange("strategy", val)}
+                                options={[
+                                    { label: "Auto (Recommended)", value: "auto" },
+                                    { label: "Lossy", value: "lossy" },
+                                    { label: "Lossless (PNG/WebP)", value: "lossless" }
+                                ]}
+                            />
+                        </SettingGroup>
 
-                            <div className="flex justify-between items-center mt-3 text-xs font-medium text-slate-500 font-sans tracking-tight">
-                                <span>Smaller file</span>
-                                <span>Higher quality</span>
-                            </div>
-                        </div>
-                    </div>
+                        {/* Advanced Settings */}
+                        <SettingGroup title="Advanced Options">
+                            <SelectRow
+                                label="Chroma Subsampling"
+                                value={activeFile.settings.chromaSubsampling}
+                                onChange={(val) => handleSettingChange("chromaSubsampling", val)}
+                                options={[
+                                    { label: "Auto", value: "auto" },
+                                    { label: "4:4:4 (Highest Quality)", value: "4:4:4" },
+                                    { label: "4:2:0 (Better Compression)", value: "4:2:0" }
+                                ]}
+                            />
+
+                            <div className="h-px bg-slate-200/60 my-2 w-full"></div>
+
+                            <ToggleRow
+                                label="Preserve EXIF Metadata"
+                                description="Keep camera info, location, date created, etc."
+                                checked={activeFile.settings.preserveMetadata}
+                                onChange={(val) => handleSettingChange("preserveMetadata", val)}
+                            />
+                        </SettingGroup>
+                    </ToolSettingsRenderer>
                 )}
             </ToolModal>
         </div>

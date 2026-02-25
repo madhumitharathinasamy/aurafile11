@@ -21,7 +21,7 @@ export function ImageComparison({
     const [showOriginal, setShowOriginal] = useState(false);
 
     return (
-        <div className={`relative w-full max-w-full overflow-hidden rounded-xl border border-border bg-surface select-none flex flex-col items-center justify-center ${className}`} style={{ maxHeight: 'calc(40vh - 2rem)' }}>
+        <div className={`relative w-full h-full max-w-full overflow-hidden rounded-xl border border-border bg-surface select-none flex flex-col items-center justify-center ${className}`}>
 
             {/* The Image */}
             <div className="w-full h-full flex items-center justify-center p-4">
@@ -38,8 +38,8 @@ export function ImageComparison({
                 <button
                     onClick={() => setShowOriginal(true)}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${showOriginal
-                            ? "bg-slate-800 text-white shadow-md"
-                            : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                        ? "bg-slate-800 text-white shadow-md"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                         }`}
                 >
                     {beforeLabel}
@@ -47,8 +47,8 @@ export function ImageComparison({
                 <button
                     onClick={() => setShowOriginal(false)}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${!showOriginal
-                            ? "bg-[#0081C9] text-white shadow-md shadow-[#0081C9]/20"
-                            : "text-slate-500 hover:text-[#0081C9] hover:bg-[#0081C9]/10"
+                        ? "bg-[#0081C9] text-white shadow-md shadow-[#0081C9]/20"
+                        : "text-slate-500 hover:text-[#0081C9] hover:bg-[#0081C9]/10"
                         }`}
                 >
                     {afterLabel}

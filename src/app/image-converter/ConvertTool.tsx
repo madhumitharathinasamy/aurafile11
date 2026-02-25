@@ -5,8 +5,11 @@ import { ImageUploader } from "@/components/tools/ImageUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
-import { ImageComparison } from "@/components/tools/ImageComparison"; // Added ImageComparison import
+import { ImageComparison } from "@/components/tools/ImageComparison";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { ToolSettingsRenderer, SettingGroup, SettingRow, ToggleRow, SelectRow } from "@/components/tools/ToolSettingsRenderer";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 const ACCEPTED_EXTENSIONS = {
     "image/jpeg": [".jpg", ".jpeg"],
@@ -26,13 +29,29 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const validateFile = (file: File): string | null => {
     const isSupported = Object.keys(ACCEPTED_EXTENSIONS).some(mime => {
         if (file.type === mime) return true;
-        const ext = `.${file.name.split('.').pop()?.toLowerCase()} `;
+        const ext = `.${file.name.split('.').pop()?.toLowerCase()}`;
         return ACCEPTED_EXTENSIONS[mime as keyof typeof ACCEPTED_EXTENSIONS]?.includes(ext);
     });
     if (!isSupported) return "Format not supported";
     if (file.size > MAX_FILE_SIZE) return "File too large (>50MB)";
     if (file.size === 0) return "File is empty/corrupted";
     return null;
+};
+
+interface ConvertSettings {
+    targetFormat: string;
+    quality: number; // For JPG, WEBP, AVIF, TIFF
+    backgroundColor: string; // For JPG or transparency replacement
+    preserveMetadata: boolean;
+    lossless: boolean; // For WEBP, AVIF
+}
+
+const DEFAULT_SETTINGS: ConvertSettings = {
+    targetFormat: "jpg",
+    quality: 90,
+    backgroundColor: "transparent", // Only used if format doesn't support transparency and not "transparent"
+    preserveMetadata: true,
+    lossless: false
 };
 
 export default function ConvertTool() {
@@ -42,25 +61,15 @@ export default function ConvertTool() {
         setActiveIndex,
         activeFile,
         addFiles,
-        clearAll
+        clearAll,
+        updateFileSettings,
+        updateAllFileSettings,
+        isBatchMode
     } = useFileUpload([]);
-
-    // Settings State definition
-    const [targetFormat, setTargetFormat] = useState<string>("jpg");
-    const [quality, setQuality] = useState<number>(100);
-    const [backgroundColor, setBackgroundColor] = useState<string>("#ffffff");
-    const [stripMetadata, setStripMetadata] = useState<boolean>(true);
 
     const [isConverting, setIsConverting] = useState<boolean>(false);
     const [convertedFiles, setConvertedFiles] = useState<{ [key: string]: string }>({});
-
-    // Reset conversion results when settings change
-    useEffect(() => {
-        if (Object.keys(convertedFiles).length > 0) {
-            Object.values(convertedFiles).forEach(url => URL.revokeObjectURL(url));
-            setConvertedFiles({});
-        }
-    }, [targetFormat, quality, backgroundColor, stripMetadata]);
+    const [applyToAll, setApplyToAll] = useState(false);
 
     // Cleanup on unmount
     useEffect(() => {
@@ -89,12 +98,83 @@ export default function ConvertTool() {
         const skippedCount = uniqueFiles.length - filesToAdd.length;
 
         if (filesToAdd.length > 0) {
-            addFiles(filesToAdd);
+            addFiles(filesToAdd, { ...DEFAULT_SETTINGS });
             if (skippedCount > 0) {
-                toast.warning(`Added ${filesToAdd.length} files.Skipped ${skippedCount} (Limit 20).`);
+                toast.warning(`Added ${filesToAdd.length} files. Skipped ${skippedCount} (Limit 20).`);
             }
         } else if (uniqueFiles.length < newFiles.length && skippedCount === 0) {
             toast.info("Duplicate files were skipped.");
+        }
+    };
+
+    const handleSettingChange = (key: keyof ConvertSettings, value: any) => {
+        if (!activeFile) return;
+
+        let finalUpdates = { [key]: value };
+
+        // Auto-fix background color if moving to JPG and currently transparent
+        if (key === "targetFormat" && value === "jpg" && activeFile.settings.backgroundColor === "transparent") {
+            finalUpdates.backgroundColor = "#FFFFFF";
+        }
+
+        // Wipe converted results since settings changed
+        if (Object.keys(convertedFiles).length > 0) {
+            Object.values(convertedFiles).forEach(url => URL.revokeObjectURL(url));
+            setConvertedFiles({});
+        }
+
+        if (applyToAll && isBatchMode) {
+            updateAllFileSettings(finalUpdates);
+        } else {
+            updateFileSettings(activeFile.id, finalUpdates);
+        }
+    };
+
+    const processSingleFile = async (integratedFile: any) => {
+        const file = integratedFile.file;
+        const id = integratedFile.id;
+        const settings: ConvertSettings = integratedFile.settings;
+
+        if (validateFile(file)) {
+            return false;
+        }
+
+        try {
+            const { convertImageAction } = await import("@/actions/tools");
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("format", settings.targetFormat);
+            formData.append("quality", settings.quality.toString());
+
+            // Advanced settings sent through the action (which reuses processCompressImage)
+            formData.append("targetMode", "false");
+            formData.append("strategy", settings.lossless ? "lossless" : "lossy");
+            formData.append("preserveMetadata", String(settings.preserveMetadata));
+
+            if (settings.backgroundColor && settings.backgroundColor !== "transparent") {
+                formData.append("backgroundColor", settings.backgroundColor);
+            }
+
+            const result = await convertImageAction(formData);
+
+            if (result.success && result.data) {
+                // Fetch the base64 string and convert to blob url for downloading
+                const response = await fetch(result.data);
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+
+                setConvertedFiles(prev => ({
+                    ...prev,
+                    [id]: objectUrl
+                }));
+                return true;
+            } else {
+                console.error(`Failed to convert ${file.name}:`, result.error);
+                return false;
+            }
+        } catch (err) {
+            console.error(`Error converting ${file.name}:`, err);
+            return false;
         }
     };
 
@@ -105,73 +185,40 @@ export default function ConvertTool() {
         // Clean up previous URLs
         Object.values(convertedFiles).forEach(url => URL.revokeObjectURL(url));
         setConvertedFiles({});
-        toast.info(`Starting conversion of ${files.length} files...`);
 
-        try {
-            const { convertImageAction } = await import("@/actions/tools");
-            let successCount = 0;
-            let errorCount = 0;
+        let successCount = 0;
+        let errorCount = 0;
 
-            for (const integratedFile of files) {
-                const file = integratedFile.file;
-                const id = integratedFile.id;
-
-                if (validateFile(file)) {
-                    errorCount++;
-                    continue;
-                }
-
-                try {
-                    const formData = new FormData();
-                    formData.append("file", file);
-                    formData.append("format", targetFormat);
-                    formData.append("quality", quality.toString());
-                    if (targetFormat === 'jpg') {
-                        formData.append("backgroundColor", backgroundColor);
-                    }
-
-                    const result = await convertImageAction(formData);
-
-                    if (result.success && result.data) {
-                        const response = await fetch(result.data);
-                        const blob = await response.blob();
-                        const objectUrl = URL.createObjectURL(blob);
-
-                        setConvertedFiles(prev => ({
-                            ...prev,
-                            [id]: objectUrl
-                        }));
-                        successCount++;
-                    } else {
-                        console.error(`Failed to convert ${file.name}: `, result.error);
-                        errorCount++;
-                    }
-                } catch (err) {
-                    console.error(`Error converting ${file.name}: `, err);
-                    errorCount++;
-                }
+        if (applyToAll && isBatchMode) {
+            toast.info(`Starting conversion of ${files.length} files...`);
+            for (const file of files) {
+                const success = await processSingleFile(file);
+                if (success) successCount++;
+                else errorCount++;
             }
+        } else {
+            if (!activeFile) return;
+            toast.info(`Converting ${activeFile.file.name}...`);
+            const success = await processSingleFile(activeFile);
+            if (success) successCount++;
+            else errorCount++;
+        }
 
-            if (successCount === 0) {
-                toast.error("Failed to convert files. Please try again.");
-            } else if (errorCount > 0) {
-                toast.warning(`Converted ${successCount} files.${errorCount} failed.`);
-            } else {
-                toast.success(`Successfully converted ${successCount} files!`);
-            }
+        setIsConverting(false);
 
-        } catch (error) {
-            console.error("Conversion error:", error);
-            toast.error("An error occurred during conversion.");
-        } finally {
-            setIsConverting(false);
+        if (successCount === 0) {
+            toast.error("Failed to convert files. Please try again.");
+        } else if (errorCount > 0) {
+            toast.warning(`Converted ${successCount} files. ${errorCount} failed.`);
+        } else {
+            toast.success(`Successfully converted ${successCount} files!`);
         }
     };
 
-    const downloadFile = async (fileName: string, fileUrl: string) => {
+    const getDownloadExt = (format: string) => format === "jpeg" ? "jpg" : format;
+
+    const downloadFile = async (fileName: string, fileUrl: string, format: string) => {
         try {
-            // Mobile browsers often block direct data URL downloads as "insecure".
-            // Fetching the data URL and creating a local ObjectURL Blob bypasses this.
             const response = await fetch(fileUrl);
             const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
@@ -179,8 +226,7 @@ export default function ConvertTool() {
             const link = document.createElement("a");
             link.href = blobUrl;
             const originalName = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
-            const validExt = targetFormat === "jpeg" ? "jpg" : targetFormat;
-            link.download = `${originalName}.${validExt} `;
+            link.download = `${originalName}.${getDownloadExt(format)}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -197,23 +243,23 @@ export default function ConvertTool() {
             const zip = new JSZip();
             const usedNames = new Set<string>();
 
-            const promises = files.map(async ({ id, file }) => {
+            const promises = files.map(async ({ id, file, settings }) => {
                 const fileUrl = convertedFiles[id];
                 if (!fileUrl) return;
 
                 const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                const validExt = targetFormat === "jpeg" ? "jpg" : targetFormat;
+                const ext = getDownloadExt(settings.targetFormat);
 
-                let fileName = `${originalName}.${validExt} `;
+                let fileName = `${originalName}.${ext}`;
                 let counter = 1;
                 while (usedNames.has(fileName)) {
-                    fileName = `${originalName} (${counter}).${validExt} `;
+                    fileName = `${originalName} (${counter}).${ext}`;
                     counter++;
                 }
                 usedNames.add(fileName);
 
                 const response = await fetch(fileUrl);
-                if (!response.ok) throw new Error(`Failed to fetch ${fileName} `);
+                if (!response.ok) throw new Error(`Failed to fetch ${fileName}`);
                 const blob = await response.blob();
                 zip.file(fileName, blob);
             });
@@ -235,21 +281,28 @@ export default function ConvertTool() {
         }
     };
 
-    const allConverted = files.length > 0 && files.every(f => convertedFiles[f.id]);
+    const isCurrentFileConverted = activeFile && convertedFiles[activeFile.id];
+    const isAllConverted = files.length > 0 && files.every(f => convertedFiles[f.id]);
 
     const handlePrimaryAction = () => {
-        if (allConverted) {
-            if (files.length > 1) {
-                downloadAll();
-            } else {
-                const fileState = files[0];
-                if (fileState && convertedFiles[fileState.id]) {
-                    downloadFile(fileState.file.name, convertedFiles[fileState.id]);
-                }
-            }
+        if (applyToAll && isBatchMode) {
+            if (isAllConverted) downloadAll();
+            else handleConvert();
         } else {
-            handleConvert();
+            if (isCurrentFileConverted && activeFile) {
+                downloadFile(activeFile.file.name, convertedFiles[activeFile.id], activeFile.settings.targetFormat);
+            } else {
+                handleConvert();
+            }
         }
+    };
+
+    const getPrimaryActionText = () => {
+        if (isConverting) return "Converting...";
+        if (applyToAll && isBatchMode) {
+            return isAllConverted ? `Download All (${files.length})` : `Convert All (${files.length})`;
+        }
+        return isCurrentFileConverted ? "Download Image" : "Convert Active File";
     };
 
     return (
@@ -257,10 +310,7 @@ export default function ConvertTool() {
             {files.length === 0 && (
                 <div className="mt-6 w-full max-w-7xl mx-auto">
                     <div className="rounded-xl border border-border bg-white shadow-xl p-4 md:p-8">
-                        <ImageUploader
-                            onUpload={handleUpload}
-                            accept={ACCEPTED_EXTENSIONS}
-                        />
+                        <ImageUploader onUpload={handleUpload} accept={ACCEPTED_EXTENSIONS} />
                     </div>
                 </div>
             )}
@@ -275,137 +325,127 @@ export default function ConvertTool() {
                 onPrimaryAction={handlePrimaryAction}
                 primaryActionText={
                     <span className="flex items-center justify-center gap-2">
-                        {allConverted ? (
-                            <>
-                                <Icon name="download" size={18} />
-                                {files.length > 1 ? "Download ZIP" : "Download Image"}
-                            </>
-                        ) : (
-                            <>
-                                <Icon name="arrow-right" size={18} />
-                                Convert to {targetFormat.toUpperCase()}
-                            </>
-                        )}
+                        <Icon name={(applyToAll && isAllConverted) || (!applyToAll && isCurrentFileConverted) ? "download" : "arrow-right"} size={18} />
+                        {getPrimaryActionText()}
                     </span>
                 }
                 isProcessing={isConverting}
                 customPreview={
-                    allConverted && activeFile && convertedFiles[activeFile.id] ? (
+                    isCurrentFileConverted ? (
                         <div className="w-full h-full p-4 md:p-8 flex items-center justify-center relative">
                             <img
                                 src={convertedFiles[activeFile.id]}
                                 alt="Converted Preview"
-                                className="max-w-full max-h-full object-contain pointer-events-none drop-shadow-sm"
+                                className="max-w-full max-h-full object-contain pointer-events-none drop-shadow-sm border border-slate-200"
+                                style={{ backgroundColor: activeFile.settings?.backgroundColor !== 'transparent' ? activeFile.settings?.backgroundColor : 'transparent' }}
                             />
-
                             <div className="absolute bottom-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm text-[10px] font-bold uppercase tracking-wider text-[#0081C9] flex items-center gap-1.5 z-10">
-                                <Icon name="check-circle" size={14} /> Converted to {targetFormat.toUpperCase()}
+                                <Icon name="check-circle" size={14} /> Converted to {activeFile.settings?.targetFormat.toUpperCase()}
                             </div>
                         </div>
                     ) : undefined
                 }
             >
-                {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
-                    <div className="space-y-8">
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-800 mb-6 font-sans">Convert Options</h2>
-
-                            {/* Stats Info Box */}
-                            <div className="bg-[#E8ECEF] rounded-xl p-4 flex flex-col gap-3 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-white p-2 rounded-lg shadow-sm">
-                                        <Icon name="file-type-2" size={24} className="text-[#0081C9]" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-slate-800 truncate text-sm">
-                                            {files.length} Image{files.length !== 1 ? 's' : ''} Uploaded
-                                        </p>
-                                        <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                                            {allConverted ? 'Conversion complete' : 'Ready to convert'}
-                                        </p>
-                                    </div>
+                    <ToolSettingsRenderer
+                        title="Convert Settings"
+                        isBatchMode={isBatchMode}
+                        applyToAll={applyToAll}
+                        onApplyToAllChange={setApplyToAll}
+                    >
+                        <div className="bg-[#E8ECEF] rounded-xl p-4 flex flex-col gap-3 shadow-sm mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white p-2 rounded-lg shadow-sm">
+                                    <Icon name="file-type-2" size={24} className="text-[#0081C9]" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-slate-800 truncate text-sm">
+                                        Source: {activeFile.file.type.split('/')[1]?.toUpperCase() || 'UNKNOWN'}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                                        Size: {(activeFile.file.size / 1024 / 1024).toFixed(2)} MB
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Conversion Settings */}
-                        <div className="space-y-6">
+                        <SettingGroup title="Output Format">
+                            <SelectRow
+                                label="Target Format"
+                                value={activeFile.settings?.targetFormat}
+                                onChange={(val) => handleSettingChange("targetFormat", val)}
+                                options={[
+                                    { label: "JPG - JPEG Image", value: "jpg" },
+                                    { label: "PNG - Portable Network Graphics", value: "png" },
+                                    { label: "WebP - Modern Web Image", value: "webp" },
+                                    { label: "AVIF - AV1 Image File", value: "avif" },
+                                    { label: "TIFF - Tagged Image File", value: "tiff" },
+                                    { label: "GIF - Static Action", value: "gif" },
+                                    { label: "BMP - Bitmap Image", value: "bmp" },
+                                    { label: "ICO - Icon File", value: "ico" }
+                                ]}
+                            />
 
-                            {/* Target Format */}
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Target Format</label>
-                                <div className="bg-[#E8ECEF] p-3 rounded-xl border border-transparent focus-within:border-[#0081C9] focus-within:bg-white transition-all space-y-1">
-                                    <select
-                                        className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer"
-                                        value={targetFormat}
-                                        onChange={(e) => setTargetFormat(e.target.value)}
-                                        disabled={isConverting || allConverted}
+                            {/* Format-specific Settings */}
+                            {["webp", "avif"].includes(activeFile.settings?.targetFormat) && (
+                                <ToggleRow
+                                    label="Lossless Encoding"
+                                    description="Perfect quality but larger file size"
+                                    checked={activeFile.settings?.lossless}
+                                    onChange={(val) => handleSettingChange("lossless", val)}
+                                />
+                            )}
+
+                            {["jpg", "webp", "avif", "tiff"].includes(activeFile.settings?.targetFormat) && !activeFile.settings?.lossless && (
+                                <SettingRow label="Quality Range" value={`${activeFile.settings?.quality}%`}>
+                                    <div className="relative w-full h-2 rounded-full cursor-pointer bg-slate-200 mt-2">
+                                        <div className="absolute top-0 left-0 h-full bg-[#0081C9] rounded-l-full pointer-events-none" style={{ width: `${activeFile.settings?.quality}%` }}></div>
+                                        <input
+                                            type="range" min="1" max="100"
+                                            value={activeFile.settings?.quality}
+                                            onChange={(e) => handleSettingChange("quality", parseInt(e.target.value))}
+                                            className="absolute top-0 left-0 w-full opacity-0 cursor-pointer z-10 h-full"
+                                        />
+                                        <div className="absolute top-1/2 -translate-y-1/2 h-4 w-4 bg-white rounded-full border-[2px] border-[#0081C9] shadow-sm pointer-events-none z-0 mt-[1px]" style={{ left: `calc(${activeFile.settings?.quality}% - 8px)` }}></div>
+                                    </div>
+                                </SettingRow>
+                            )}
+                        </SettingGroup>
+
+                        <SettingGroup title="Transparency & Metadata">
+                            <div className="flex items-center gap-3 w-full text-sm">
+                                <label className="font-medium text-slate-700 flex-1">
+                                    Background Fill Color
+                                </label>
+                                <input
+                                    type="color"
+                                    value={activeFile.settings?.backgroundColor === 'transparent' ? '#ffffff' : activeFile.settings?.backgroundColor}
+                                    onChange={(e) => handleSettingChange("backgroundColor", e.target.value)}
+                                    disabled={activeFile.settings?.backgroundColor === 'transparent'}
+                                    className="h-8 w-12 cursor-pointer border-none bg-transparent rounded-lg"
+                                />
+                                {["png", "webp", "gif"].includes(activeFile.settings?.targetFormat) && (
+                                    <button
+                                        onClick={() => handleSettingChange("backgroundColor", activeFile.settings?.backgroundColor === "transparent" ? "#FFFFFF" : "transparent")}
+                                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${activeFile.settings?.backgroundColor === "transparent" ? "bg-[#0081C9]/10 text-[#0081C9]" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
                                     >
-                                        <option value="jpg">JPG - JPEG Image</option>
-                                        <option value="png">PNG - Portable Network Graphics</option>
-                                        <option value="webp">WebP - Modern Web Image</option>
-                                        <option value="avif">AVIF - AV1 Image File</option>
-                                        <option value="tiff">TIFF - Tagged Image File</option>
-                                        <option value="gif">GIF - Graphics Interchange Format</option>
-                                        <option value="bmp">BMP - Bitmap Image</option>
-                                        <option value="ico">ICO - Icon File</option>
-                                    </select>
-                                </div>
+                                        Transparent
+                                    </button>
+                                )}
                             </div>
+                            <p className="text-xs text-slate-500 mt-1">Replaces transparent pixels with this color.</p>
 
-                            {/* Quality Slider (Lossy formats only) */}
-                            {["jpg", "webp", "avif"].includes(targetFormat) && (
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center bg-[#E8ECEF] p-4 rounded-xl border border-transparent relative">
-                                        <div className="flex flex-col w-full">
-                                            <div className="flex justify-between items-center mb-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                                <span>Quality</span>
-                                                <span className="text-[#0081C9]">{quality}%</span>
-                                            </div>
-                                            <div className="relative w-full h-2 rounded-full cursor-pointer bg-slate-200">
-                                                <div
-                                                    className="absolute top-0 left-0 h-full bg-[#0081C9] pointer-events-none rounded-full"
-                                                    style={{ width: `${quality}% ` }}
-                                                ></div>
-                                                <input
-                                                    type="range"
-                                                    min="10"
-                                                    max="100"
-                                                    step="5"
-                                                    value={quality}
-                                                    onChange={(e) => setQuality(Number(e.target.value))}
-                                                    disabled={isConverting || allConverted}
-                                                    className="absolute top-0 left-0 w-full opacity-0 cursor-pointer z-10 h-full"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            <div className="h-px bg-slate-200/60 my-2 w-full"></div>
 
-                            {/* Background Color (JPG only) */}
-                            {targetFormat === "jpg" && (
-                                <div className="space-y-3">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Background Color</label>
-                                    <div className="bg-[#E8ECEF] p-3 rounded-xl border border-transparent focus-within:border-[#0081C9] focus-within:bg-white transition-all space-y-1">
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="color"
-                                                value={backgroundColor}
-                                                onChange={(e) => setBackgroundColor(e.target.value)}
-                                                disabled={isConverting || allConverted}
-                                                className="h-8 w-12 p-0 rounded border-0 cursor-pointer bg-transparent"
-                                            />
-                                            <span className="text-sm font-semibold text-slate-800 uppercase">{backgroundColor}</span>
-                                        </div>
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 font-medium">Replaces transparent backgrounds.</p>
-                                </div>
-                            )}
+                            <ToggleRow
+                                label="Preserve Metadata"
+                                description="Keep original EXIF data if target format supports it"
+                                checked={activeFile.settings?.preserveMetadata}
+                                onChange={(val) => handleSettingChange("preserveMetadata", val)}
+                            />
+                        </SettingGroup>
 
-                        </div>
-                    </div>
+                    </ToolSettingsRenderer>
                 )}
             </ToolModal>
         </div>
