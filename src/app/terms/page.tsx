@@ -11,7 +11,7 @@ export default function TermsPage() {
         <>
             <PageHeader
                 title="Terms of Service"
-                subtitle={`Last Updated: ${new Date().toLocaleDateString()}`}
+                subtitle="Last Updated: February 2024"
             />
 
             <main className="container" style={{ paddingBottom: "6rem", maxWidth: "800px" }}>

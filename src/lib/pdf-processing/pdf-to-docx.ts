@@ -89,7 +89,7 @@ export async function convertPdfToDocx(file: File, options: ConversionOptions): 
             if (context) {
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
-                await page.render({ canvasContext: context, viewport } as any).promise;
+                await page.render({ canvasContext: context, viewport } as Parameters<typeof page.render>[0]).promise;
 
                 const base64Data = canvas.toDataURL("image/jpeg", 0.95);
                 const arrayBuffer = Uint8Array.from(atob(base64Data.split(',')[1]), c => c.charCodeAt(0));

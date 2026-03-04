@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <>
             <PageHeader
                 title="Privacy Policy"
-                subtitle={`Last Updated: ${new Date().toLocaleDateString()}`}
+                subtitle="Last Updated: February 2024"
             />
 
             <main className="container mx-auto max-w-[800px] pb-12 px-4 md:pb-12">

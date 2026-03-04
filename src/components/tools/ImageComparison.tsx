@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import Image from "next/image";
 
 interface ImageComparisonProps {
     beforeImage: string;
@@ -24,12 +25,14 @@ export function ImageComparison({
         <div className={`relative w-full h-full max-w-full overflow-hidden rounded-xl border border-border bg-surface select-none flex flex-col items-center justify-center ${className}`}>
 
             {/* The Image */}
-            <div className="w-full h-full flex items-center justify-center p-4">
-                <img
+            <div className="relative w-full h-full p-4">
+                <Image
                     src={showOriginal ? beforeImage : afterImage}
                     alt={showOriginal ? beforeLabel : afterLabel}
-                    className="max-w-full max-h-full object-contain drop-shadow-sm transition-opacity duration-200"
+                    fill
+                    className="object-contain drop-shadow-sm transition-opacity duration-200 p-4"
                     draggable={false}
+                    unoptimized
                 />
             </div>
 

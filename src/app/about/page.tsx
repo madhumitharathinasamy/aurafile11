@@ -24,10 +24,10 @@ export default function AboutPage() {
                 <section>
                     <h2 className="mb-6 text-2xl md:text-4xl font-semibold text-foreground">Our Mission</h2>
                     <p className="mb-4">
-                        We believe that simple tasks like resizing an image or converting a file format shouldn't require downloading heavy software, registering for an account, or risking your privacy by uploading files to unknown servers.
+                        We believe that simple tasks like resizing an image or converting a file format shouldn&apos;t require downloading heavy software, registering for an account, or risking your privacy by uploading files to unknown servers.
                     </p>
                     <p className="mb-8">
-                        Our mission is to build the web's best collection of file utility tools that work <strong>entirely in your browser</strong>. This ensures:
+                        Our mission is to build the web&apos;s best collection of file utility tools that work <strong>entirely in your browser</strong>. This ensures:
                     </p>
 
                     {/* Feature List */}

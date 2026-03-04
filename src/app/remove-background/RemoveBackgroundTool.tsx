@@ -6,7 +6,7 @@ import { ToolModal } from "@/components/modal/ToolModal";
 import { ImageComparison } from "@/components/tools/ImageComparison";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
-import { useFileUpload } from "@/hooks/useFileUpload";
+import { useFileUpload, type IntegratedFile } from "@/hooks/useFileUpload";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { ToolSettingsRenderer, SettingGroup, ToggleRow } from "@/components/tools/ToolSettingsRenderer";
@@ -41,13 +41,13 @@ export default function RemoveBackgroundTool() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [applyToAll, setApplyToAll] = useState(false);
 
-    const processSingleFile = useCallback(async (currentFile: any) => {
+    async function processSingleFile(currentFile: IntegratedFile) {
         try {
             console.log("Removing background for", currentFile.file.name);
 
             // Dynamically import to drastically reduce initial page bundle size!
             const imgly = await import("@imgly/background-removal");
-            const imglyRemoveBackground = (imgly.default || imgly) as any;
+            const imglyRemoveBackground = (imgly.default || imgly) as unknown as (source: Blob | File | string, config?: any) => Promise<Blob>;
 
             // Execute imgly background removal
             const imageBlob = await imglyRemoveBackground(currentFile.file, {
@@ -70,7 +70,7 @@ export default function RemoveBackgroundTool() {
             toast.error(`Error processing ${currentFile.file.name}.`);
             return false;
         }
-    }, [updateFileSettings]);
+    }
 
     // Debounced auto-preview
     // For background removal, we might not want to auto-preview every time since it's heavy, 
@@ -90,7 +90,7 @@ export default function RemoveBackgroundTool() {
         }, 1000); // Longer debounce for heavy ML task
 
         return () => clearTimeout(timer);
-    }, [activeSettingsStr, activeFile, processSingleFile]);
+    }, [activeSettingsStr, activeFile]);
 
     const handleUpload = async (uploadedFiles: File[]) => {
         addFiles(uploadedFiles, { ...DEFAULT_SETTINGS });

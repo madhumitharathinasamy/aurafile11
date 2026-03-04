@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import Image from "next/image";
 import { IntegratedFile } from "@/hooks/useFileUpload";
 
 export interface PdfPageThumb {
@@ -163,11 +164,13 @@ export function PdfPageGallery({ files, onPageStateChange }: PdfPageGalleryProps
                                     <div key={page.id} className={`group relative flex flex-col items-center gap-2 transition-all ${page.deleted ? 'opacity-30 grayscale' : 'opacity-100 hover:-translate-y-1'}`}>
 
                                         <div className="relative rounded-lg shadow-md border border-slate-200 bg-white overflow-hidden aspect-[1/1.4] w-full flex items-center justify-center">
-                                            <img
+                                            <Image
                                                 src={page.url}
                                                 alt={`Page ${page.pageNum}`}
-                                                className="w-full h-full object-contain pointer-events-none transition-transform duration-300"
+                                                fill
+                                                className="object-contain pointer-events-none transition-transform duration-300"
                                                 style={{ transform: `rotate(${page.rotation}deg)` }}
+                                                unoptimized
                                             />
 
                                             {/* Hover Overlay Actions */}

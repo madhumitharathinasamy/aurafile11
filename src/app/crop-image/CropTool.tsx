@@ -113,8 +113,7 @@ export default function CropTool() {
                 }
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeIndex, activeFile]);
+    }, [activeIndex, activeFile, aspect, crop]);
 
 
     useEffect(() => {

@@ -41,7 +41,7 @@ export default function MergePdfTool() {
                 }
             }
         });
-    }, [files, updatePreviewUrl]);
+    }, [files, updatePreviewUrl, updateFileSettings]);
 
     const handleUpload = (newFiles: File[]) => {
         addFiles(newFiles);

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ImageUploader } from "@/components/tools/ImageUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 import { ImageComparison } from "@/components/tools/ImageComparison";
-import { useFileUpload } from "@/hooks/useFileUpload";
+import { useFileUpload, type IntegratedFile } from "@/hooks/useFileUpload";
 import { ToolSettingsRenderer, SettingGroup, SelectRow, SettingRow, ToggleRow } from "@/components/tools/ToolSettingsRenderer";
-import { saveAs } from "file-saver";
+
 
 const ACCEPTED_EXTENSIONS = {
     "image/jpeg": [".jpg", ".jpeg"],
@@ -25,17 +25,7 @@ const ACCEPTED_EXTENSIONS = {
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
-const validateFile = (file: File): string | null => {
-    const isSupported = Object.keys(ACCEPTED_EXTENSIONS).some(mime => {
-        if (file.type === mime) return true;
-        const ext = `.${file.name.split('.').pop()?.toLowerCase()}`;
-        return ACCEPTED_EXTENSIONS[mime as keyof typeof ACCEPTED_EXTENSIONS]?.includes(ext);
-    });
-    if (!isSupported) return "Format not supported";
-    if (file.size > MAX_FILE_SIZE) return "File too large (>50MB)";
-    if (file.size === 0) return "File is empty/corrupted";
-    return null;
-};
+
 
 interface ConvertSettings {
     targetFormat: string;
@@ -109,7 +99,7 @@ export default function ConvertTool() {
     const handleSettingChange = (key: keyof ConvertSettings, value: string | number | boolean) => {
         if (!activeFile) return;
 
-        let finalUpdates = { [key]: value };
+        const finalUpdates: any = { [key]: value };
 
         // Auto-fix background color if moving to JPG and currently transparent
         if (key === "targetFormat" && value === "jpg" && activeFile.settings.backgroundColor === "transparent") {
@@ -129,15 +119,11 @@ export default function ConvertTool() {
         }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const processSingleFile = async (integratedFile: any) => {
+    const processSingleFile = async (integratedFile: IntegratedFile) => {
         try {
             // Setup target options
             const conversionFormat = integratedFile.settings.targetFormat.toLowerCase();
             const mimeType = `image/${conversionFormat === 'jpg' ? 'jpeg' : conversionFormat}`;
-
-            // Only convert formats we support via browser-image-compression locally
-            let resultFile;
 
             // Note: browser-image-compression is primarily for compression, 
             // but we can use it for fileType conversion between web-safe formats
@@ -149,7 +135,7 @@ export default function ConvertTool() {
             };
 
             const imageCompression = (await import("browser-image-compression")).default;
-            resultFile = await imageCompression(integratedFile.file, options);
+            const resultFile = await imageCompression(integratedFile.file, options);
 
             const convertedUrl = URL.createObjectURL(resultFile);
 

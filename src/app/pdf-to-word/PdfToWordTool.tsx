@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PdfUploader } from "@/components/tools/PdfUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
 import { Icon } from "@/components/ui/Icon";
@@ -9,10 +9,8 @@ import { analyzePdf } from "@/lib/pdf-processing/pdf-analyzer";
 import { convertPdfToDocx } from "@/lib/pdf-processing/pdf-to-docx";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { generatePdfPreview } from "@/lib/pdf-processing/pdf-preview";
-import { useEffect } from "react";
 
 export default function PdfToWordTool() {
-    // 1. Universal State Engine
     const {
         files,
         activeIndex,
@@ -39,7 +37,7 @@ export default function PdfToWordTool() {
                 }
             }
         });
-    }, [files, updatePreviewUrl]);
+    }, [files, updatePreviewUrl, updateFileSettings]);
 
     // Reset processing state if all files are removed (e.g. user closed modal during conversion)
     useEffect(() => {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
+import Image from 'next/image';
 
 interface ToolModalProps {
     isOpen: boolean;
@@ -39,9 +40,7 @@ export function ToolModal({
     const [isBatchView, setIsBatchView] = useState(false);
 
     useEffect(() => {
-        // Defer to prevent synchronous cascading render lint error
-        const t = setTimeout(() => setMounted(true), 0);
-        return () => clearTimeout(t);
+        setMounted(true);
     }, []);
 
     // Locking Body Scroll
@@ -57,11 +56,11 @@ export function ToolModal({
         };
     }, [isOpen]);
 
-    // Update batch view state automatically
+    // Initial batch view state based on files
+    // Reset isBatchView when files array changes dramatically
     useEffect(() => {
-        const t = setTimeout(() => setIsBatchView(files.length > 1), 0);
-        return () => clearTimeout(t);
-    }, [files.length]);
+        setIsBatchView(files.length > 1);
+    }, [files.length > 1]);
 
     if (!isOpen || !mounted) return null;
 
@@ -193,13 +192,14 @@ export function ToolModal({
                                                         <span className="text-xs font-semibold text-slate-700 truncate">{file.file.name}</span>
                                                         <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                                                     </div>
-                                                    <div className="p-4 flex items-center justify-center min-h-[200px] bg-white">
+                                                    <div className="relative p-4 min-h-[200px] bg-white">
                                                         {file.previewUrl ? (
-                                                            <img
-                                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                            <Image
                                                                 src={file.previewUrl}
                                                                 alt={file.file.name}
-                                                                className="max-h-[300px] object-contain drop-shadow-sm"
+                                                                fill
+                                                                className="object-contain drop-shadow-sm p-4"
+                                                                unoptimized
                                                             />
                                                         ) : (
                                                             <div className="animate-pulse flex flex-col items-center">
@@ -216,12 +216,13 @@ export function ToolModal({
                                     customPreview
                                 ) : activeFile?.previewUrl ? (
                                     <div className="w-full h-full p-4 md:p-8 flex items-center justify-center overflow-auto custom-scrollbar">
-                                        <div className="relative" style={{ transition: 'transform 0.2s ease-out', transform: `scale(${zoom / 100})`, transformOrigin: 'center center' }}>
-                                            <img
-                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                        <div className="relative w-full h-[70vh] max-h-full aspect-square" style={{ transition: 'transform 0.2s ease-out', transform: `scale(${zoom / 100})`, transformOrigin: 'center center' }}>
+                                            <Image
                                                 src={activeFile.previewUrl}
                                                 alt="Preview"
-                                                className="max-w-full max-h-[70vh] object-contain shadow-lg border border-slate-200 bg-white p-1"
+                                                fill
+                                                className="object-contain shadow-lg border border-slate-200 bg-white p-1"
+                                                unoptimized
                                             />
                                             {/* Page Placeholder for future implementation */}
                                             {activeFile.settings?.pageCount > 0 && (
@@ -253,11 +254,12 @@ export function ToolModal({
                                                     onClick={() => setActiveIndex(idx)}
                                                     className={`relative h-12 w-12 aspect-square rounded-lg overflow-hidden shrink-0 snap-start transition-all bg-white border border-border/50 ${isActive ? 'ring-2 ring-primary ring-offset-1 scale-95 shadow-sm' : 'opacity-60 hover:opacity-100 hover:scale-95'}`}
                                                 >
-                                                    <img
-                                                        /* eslint-disable-next-line @next/next/no-img-element */
+                                                    <Image
                                                         src={file.previewUrl}
                                                         alt="thumb"
-                                                        className="w-full h-full object-cover"
+                                                        fill
+                                                        className="object-cover"
+                                                        unoptimized
                                                     />
                                                 </button>
                                             );

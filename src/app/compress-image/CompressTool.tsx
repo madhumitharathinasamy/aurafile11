@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ImageUploader } from "@/components/tools/ImageUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
 import { ImageComparison } from "@/components/tools/ImageComparison";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
-import { useFileUpload } from "@/hooks/useFileUpload";
+import { useFileUpload, type IntegratedFile } from "@/hooks/useFileUpload";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { ToolSettingsRenderer, SettingGroup, SettingRow, ToggleRow, SelectRow } from "@/components/tools/ToolSettingsRenderer";
@@ -62,7 +62,7 @@ export default function CompressTool() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [applyToAll, setApplyToAll] = useState(false);
 
-    const processSingleFile = useCallback(async (currentFile: any) => {
+    async function processSingleFile(currentFile: IntegratedFile) {
         try {
             const imageCompression = (await import("browser-image-compression")).default;
             const options: any = {
@@ -100,7 +100,7 @@ export default function CompressTool() {
             toast.error(`Error compressing ${currentFile.file.name}.`);
             return false;
         }
-    }, [updateFileSettings]);
+    }
 
     // Track relevant settings for auto-preview
     const activeSettingsStr = activeFile ? JSON.stringify({
@@ -129,7 +129,7 @@ export default function CompressTool() {
         }, 600);
 
         return () => clearTimeout(timer);
-    }, [activeSettingsStr, activeFile, processSingleFile]);
+    }, [activeSettingsStr, activeFile]);
 
     const handleUpload = async (uploadedFiles: File[]) => {
         addFiles(uploadedFiles, { ...DEFAULT_COMPRESS_SETTINGS });

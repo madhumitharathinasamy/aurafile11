@@ -36,7 +36,7 @@ export function PdfSecuritySeo() {
                     <p className="">
                         We utilize industry-standard encryption protocols compatible with all major PDF viewers natively.
                         By applying robust standard encryption keys, your document is mathematically sealed. Even if a malicious
-                        actor gains access to your local machine’s raw file, they cannot bypass the cryptographic lock without
+                        actor gains access to your local machine&apos;s raw file, they cannot bypass the cryptographic lock without
                         the exact password string you provided during the locking process.
                     </p>
                 </div>
@@ -63,7 +63,7 @@ export function PdfSecuritySeo() {
                 <p className="mb-4">
                     The strength of your PDF encryption is only as robust as the password you select.
                     A cryptographic lock can withstand brute-force attacks from supercomputers for millennia,
-                    but if your password is "password123", human error becomes the vulnerability.
+                    but if your password is &quot;password123&quot;, human error becomes the vulnerability.
                 </p>
                 <p className="mb-4">
                     Instead of random strings of characters that are impossible to remember (like `Xy7!pQ9$m`),
@@ -74,7 +74,7 @@ export function PdfSecuritySeo() {
                 </p>
                 <p className="text-muted-foreground">
                     Disclaimer: Because our tool operates 100% locally and stores absolutely zero data, we do not
-                    have a "forgot password" feature. If you forget your PDF password, the document is lost forever.
+                    have a &quot;forgot password&quot; feature. If you forget your PDF password, the document is lost forever.
                     Always keep a backup or store your passwords in a secure, audited Password Manager.
                 </p>
             </section>
@@ -110,7 +110,7 @@ export function PdfMergeSeo() {
                     </div>
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                         <h4 className="font-bold text-slate-800 mb-2">Easy Printing</h4>
-                        <p className="text-muted-foreground">Printing 20 separate documents requires opening each one and configuring the printer dialogue. Merging them first means clicking "Print" once.</p>
+                        <p className="text-muted-foreground">Printing 20 separate documents requires opening each one and configuring the printer dialogue. Merging them first means clicking &quot;Print&quot; once.</p>
                     </div>
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                         <h4 className="font-bold text-slate-800 mb-2">Data Archiving</h4>
@@ -149,7 +149,7 @@ export function PdfMergeSeo() {
                         <div className="bg-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-[#0081C9] shadow-sm shrink-0 border border-[#0081C9]/20">3</div>
                         <div>
                             <strong className="text-slate-800 block">Blob Generation</strong>
-                            <p className="">Finally, the new binary data is compiled and handed directly to your browser's download manager via a Blob URL. The merging happens in milliseconds, limited only by your computer's RAM rather than your internet upload speed.</p>
+                            <p className="">Finally, the new binary data is compiled and handed directly to your browser&apos;s download manager via a Blob URL. The merging happens in milliseconds, limited only by your computer&apos;s RAM rather than your internet upload speed.</p>
                         </div>
                     </div>
                 </div>
