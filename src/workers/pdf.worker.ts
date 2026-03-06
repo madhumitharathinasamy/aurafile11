@@ -6,6 +6,7 @@ export type PdfWorkerMessage =
         payload: {
             files: {
                 buffer: ArrayBuffer;
+                allPages?: boolean;
                 pages: { pageNum: number; rotation: number }[];
             }[];
         };
@@ -30,9 +31,13 @@ self.onmessage = async (e: MessageEvent<PdfWorkerMessage>) => {
             const mergedPdf = await PDFDocument.create();
 
             for (const fileData of payload.files) {
-                const pdf = await PDFDocument.load(fileData.buffer);
+                const pdf = await PDFDocument.load(fileData.buffer, { ignoreEncryption: true } as any);
 
-                if (fileData.pages.length === 0) continue;
+                if (fileData.allPages || fileData.pages.length === 0) {
+                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                    copiedPages.forEach(page => mergedPdf.addPage(page));
+                    continue;
+                }
 
                 const indicesToCopy = fileData.pages.map(p => p.pageNum - 1);
                 const copiedPages = await mergedPdf.copyPages(pdf, indicesToCopy);

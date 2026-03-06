@@ -47,7 +47,7 @@ export default function RemoveBackgroundTool() {
 
             // Dynamically import to drastically reduce initial page bundle size!
             const imgly = await import("@imgly/background-removal");
-            const imglyRemoveBackground = (imgly.default || imgly) as unknown as (source: Blob | File | string, config?: any) => Promise<Blob>;
+            const imglyRemoveBackground = imgly.removeBackground;
 
             // Execute imgly background removal
             const imageBlob = await imglyRemoveBackground(currentFile.file, {

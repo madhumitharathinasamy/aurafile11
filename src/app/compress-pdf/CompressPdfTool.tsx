@@ -83,7 +83,7 @@ export default function CompressPdfTool() {
                             pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
                         }
 
-                        const scale = currentLevel === 'extreme' ? 1.0 : 1.5; // ~72 DPI vs ~108 DPI
+                        const scale = currentLevel === 'extreme' ? 0.75 : 1.5; // ~54 DPI vs ~108 DPI
                         const quality = currentLevel === 'extreme' ? 0.6 : 0.8;
 
                         const loadingTask = pdfjsLib.getDocument(arrayBuffer);
@@ -259,7 +259,7 @@ export default function CompressPdfTool() {
     // Update individual file's compression level
     const updateLocalCompressionLevel = (level: 'extreme' | 'recommended' | 'less') => {
         if (activeFile) {
-            updateFileSettings(activeFile.id, { compressionLevel: level });
+            updateFileSettings(activeFile.id, { compressionLevel: level, compressionDone: false });
         }
         // Also update the global fallback so next uploaded file uses it
         setCompressionLevel(level);

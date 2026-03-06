@@ -334,6 +334,10 @@ export default function CropTool() {
                     }
                 }
 
+                if (circular) {
+                    outFormat = 'image/png';
+                }
+
                 canvas.toBlob((blob) => {
                     if (!blob) resolve(null);
                     else resolve(URL.createObjectURL(blob));
