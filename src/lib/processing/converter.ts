@@ -31,7 +31,6 @@ export async function convertImageClient(file: File, options: ConversionOptions)
             // Handle single or multi-image result
             processingBlob = Array.isArray(result) ? result[0] : result;
         } catch (e) {
-            console.error("HEIC conversion error:", e);
             throw new Error("HEIC conversion failed. Your browser might not support this format completely.");
         }
     }

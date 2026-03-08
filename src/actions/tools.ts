@@ -58,7 +58,6 @@ export async function compressImageAction(formData: FormData): Promise<CompressA
         const isWebSafeOutput = ["jpeg", "png", "webp", "gif", "avif"].includes(result.format);
 
         if (!isWebSafeInput || !isWebSafeOutput) {
-            console.log(`Generating previews for ${file.name} (Input: ${file.type}, Output: ${result.format})`);
             // Lazy import sharp to avoid issues if not needed, or just standard import
             const sharp = require("sharp");
 
@@ -67,9 +66,7 @@ export async function compressImageAction(formData: FormData): Promise<CompressA
                 try {
                     const previewBuffer = await sharp(buffer).jpeg({ quality: 70 }).toBuffer();
                     originalPreview = `data:image/jpeg;base64,${previewBuffer.toString("base64")}`;
-                    console.log("Original preview generated successfully");
                 } catch (e) {
-                    console.error("Failed to generate original preview", e);
                 }
             }
 
@@ -78,9 +75,7 @@ export async function compressImageAction(formData: FormData): Promise<CompressA
                 try {
                     const previewBuffer = await sharp(result.buffer).jpeg({ quality: 70 }).toBuffer();
                     compressedPreview = `data:image/jpeg;base64,${previewBuffer.toString("base64")}`;
-                    console.log("Compressed preview generated successfully");
                 } catch (e) {
-                    console.error("Failed to generate compressed preview", e);
                 }
             }
         }
@@ -94,7 +89,6 @@ export async function compressImageAction(formData: FormData): Promise<CompressA
             compressedPreview
         };
     } catch (error: any) {
-        console.error("Compression Action Error:", error);
 
         // Specific error handling for missing format support (common with HEIC)
         if (error.toString().includes("heif") || error.toString().includes("format has not been built in")) {
@@ -113,7 +107,6 @@ export async function convertImageAction(formData: FormData) {
         const quality = qualityRaw ? parseInt(qualityRaw as string) : 90;
         const backgroundColor = formData.get("backgroundColor") as string | undefined;
 
-        console.log(`Convert Action Received: Format=${format}, Quality=${quality}, Background=${backgroundColor || 'transparent'}`);
 
         if (!file || !format) {
             return { success: false, error: "Missing required fields" };
@@ -140,7 +133,6 @@ export async function convertImageAction(formData: FormData) {
             newSize: result.size
         };
     } catch (error: any) {
-        console.error("Convert Action Error:", error);
         if (error.toString().includes("heif") || error.toString().includes("format has not been built in")) {
             return { success: false, error: "HEIC/HEIF format is not currently supported." };
         }

@@ -5,7 +5,7 @@ export async function performOcr(imageBlob: Blob): Promise<string> {
         imageBlob,
         'eng',
         {
-            logger: m => console.log(m) // Optional: hook up to progress callback
+            // Optional: hook up to progress callback
         }
     );
     return text;

@@ -181,7 +181,6 @@ export default function RemoveBgTool() {
 
             toast.success("Background removed successfully!");
         } catch (error) {
-            console.error("Background removal failed:", error);
             toast.error("Failed to remove background. Please try again.");
         } finally {
             setIsProcessing(false);

@@ -397,7 +397,6 @@ export default function CropTool() {
                     newUrls[fileMeta.id] = url;
                     updateFileSettings(fileMeta.id, { isCropped: true });
                 } else {
-                    console.error("Canvas generation failed for", fileMeta.file.name);
                 }
             }
 
@@ -405,7 +404,6 @@ export default function CropTool() {
             toast.success("Crop applied successfully! Ready to download.");
 
         } catch (error) {
-            console.error(error);
             toast.error("Failed to crop image.");
         } finally {
             setIsProcessing(false);
@@ -440,7 +438,6 @@ export default function CropTool() {
                 saveAs(blob, `${originalName}-cropped.${ext}`);
             }
         } catch (error) {
-            console.error(error);
             toast.error("Failed to download images.");
         }
     };

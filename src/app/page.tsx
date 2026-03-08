@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { Reviews } from "@/components/ui/Reviews";
 
-
+export const dynamic = "force-static";
+export const revalidate = 86400;
 export default function Home() {
   const { hero, tools, features } = siteConfig.home;
 

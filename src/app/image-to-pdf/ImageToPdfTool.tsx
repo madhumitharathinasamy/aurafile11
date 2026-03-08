@@ -99,7 +99,6 @@ export default function ImageToPdfTool() {
             document.body.removeChild(link);
 
         } catch (error) {
-            console.error("PDF Generation failed:", error);
             toast.error("Failed to generate PDF. Check console for details.");
         } finally {
             setIsProcessing(false);

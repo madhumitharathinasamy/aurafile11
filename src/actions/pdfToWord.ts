@@ -56,7 +56,6 @@ export async function convertPdfToWordAction(formData: FormData) {
                 fullText += text + '\n\n';
             }
         } catch (e: any) {
-            console.error("PDF Parse error", e);
             import('fs').then(fs => fs.writeFileSync('error-log.txt', String(e.stack || e.message || e)));
             return { success: false, error: "Failed to read PDF structure. The file might be corrupted or encrypted. Detailed error is in log." };
         }
@@ -93,7 +92,6 @@ export async function convertPdfToWordAction(formData: FormData) {
         };
 
     } catch (error: any) {
-        console.error("Convert Action Error:", error);
         import('fs').then(fs => fs.writeFileSync('error-log.txt', String(error.stack || error.message || error)));
         return { success: false, error: error.message || "Failed to convert PDF to Word" };
     }

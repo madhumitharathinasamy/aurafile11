@@ -131,7 +131,6 @@ export default function CompressPdfTool() {
                             finalPdfBytes = rasterizedBytes;
                         }
                     } catch (e) {
-                        console.error("Rasterization failed, falling back to structural compression", e);
                     }
                 }
 
@@ -194,7 +193,6 @@ export default function CompressPdfTool() {
             }
 
         } catch (error) {
-            console.error(error);
             toast.error("Failed to compress PDFs. One or more files might be corrupted or password protected.");
         } finally {
             setIsProcessing(false);
@@ -231,7 +229,6 @@ export default function CompressPdfTool() {
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
         } catch (error) {
-            console.error("Download failed:", error);
             toast.error("Failed to download compressed PDFs safely.");
         }
     };

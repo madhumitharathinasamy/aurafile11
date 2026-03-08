@@ -96,7 +96,6 @@ export default function CompressTool() {
             });
             return true;
         } catch (e) {
-            console.error(e);
             toast.error(`Error compressing ${currentFile.file.name}.`);
             return false;
         }
@@ -230,7 +229,6 @@ export default function CompressTool() {
                 saveAs(blob, `${originalName}-compressed.${targetExt}`);
             }
         } catch (error) {
-            console.error(error);
             toast.error("Failed to download compressed images.");
         }
     };

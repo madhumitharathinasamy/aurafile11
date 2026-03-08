@@ -70,7 +70,6 @@ export default function ProtectPdfTool() {
 
                     toast.success("PDF protected successfully!");
                 } else if (e.data.type === 'ERROR') {
-                    console.error("Worker Error:", e.data.payload.error);
                     toast.error("Failed to protect PDF. The file might already be encrypted.");
                 }
 
@@ -79,7 +78,6 @@ export default function ProtectPdfTool() {
             };
 
             worker.onerror = (error) => {
-                console.error("Worker Execution Error:", error);
                 toast.error("Failed to initialize security worker.");
                 setIsProcessing(false);
                 worker.terminate();
@@ -91,7 +89,6 @@ export default function ProtectPdfTool() {
             });
 
         } catch (error) {
-            console.error(error);
             toast.error("Failed to process PDF.");
             setIsProcessing(false);
         }
@@ -119,7 +116,6 @@ export default function ProtectPdfTool() {
             document.body.removeChild(link);
             URL.revokeObjectURL(blobUrl);
         } catch (error) {
-            console.error("Download failed:", error);
             toast.error("Failed to download protected PDF safely.");
         }
     };

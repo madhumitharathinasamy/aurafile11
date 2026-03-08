@@ -193,7 +193,6 @@ export default function ResizeTool() {
             toast.success("Images resized successfully! Ready to download.");
 
         } catch (error) {
-            console.error(error);
             toast.error("Failed to resize images. Please try again.");
         } finally {
             setIsProcessing(false);
@@ -234,7 +233,6 @@ export default function ResizeTool() {
                 saveAs(blob, `${originalName}-resized.${ext}`);
             }
         } catch (error) {
-            console.error(error);
             toast.error("Failed to download images.");
         }
     };

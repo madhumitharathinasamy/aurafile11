@@ -8,9 +8,10 @@ import { UPLOAD_LIMITS } from "@/config/limits";
 interface PdfUploaderProps {
     onUpload: (files: File[]) => void;
     maxFiles?: number;
+    allowProtected?: boolean;
 }
 
-export function PdfUploader({ onUpload, maxFiles = UPLOAD_LIMITS.MAX_FILES }: PdfUploaderProps) {
+export function PdfUploader({ onUpload, maxFiles = UPLOAD_LIMITS.MAX_FILES, allowProtected = false }: PdfUploaderProps) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: async (acceptedFiles) => {
             if (acceptedFiles?.length > 0) {
@@ -33,13 +34,23 @@ export function PdfUploader({ onUpload, maxFiles = UPLOAD_LIMITS.MAX_FILES }: Pd
                         const loadingTask = pdfjsLib.getDocument(arrayBuffer);
                         loadingTask.onPassword = (updatePassword: any, reason: number) => {
                             // Reason 1 = NEED_PASSWORD
-                            if (reason === 1) {
+                            if (reason === 1 && !allowProtected) {
                                 throw new Error("PasswordProtected");
                             }
                         };
 
-                        await loadingTask.promise;
-                        validFiles.push(file);
+                        try {
+                            await loadingTask.promise;
+                            validFiles.push(file);
+                        } catch (loadError: any) {
+                            if (loadError.name === "PasswordException" && allowProtected) {
+                                // We expect a PasswordException if it's protected but we allowed it to bypass our manual throw.
+                                validFiles.push(file);
+                            } else {
+                                throw loadError;
+                            }
+                        }
+
                     } catch (error: any) {
                         if (error.message === "PasswordProtected" || error.name === "PasswordException") {
                             toast.error(`"${file.name}" is password protected and cannot be processed.`);

@@ -33,7 +33,6 @@ export async function generatePdfPreview(file: File): Promise<{ url: string, pag
         const url = canvas.toDataURL("image/jpeg", 0.9);
         return { url, pageCount: pdf.numPages };
     } catch (error) {
-        console.error("Failed to generate PDF preview:", error);
         return null;
     }
 }

@@ -38,7 +38,6 @@ export async function convertPdfToDocx(file: File, options: ConversionOptions): 
 
     if (options.useOcr) {
         try {
-            console.log("Initializing persistent OCR Worker...");
             const Tesseract = (await import('tesseract.js')).default;
             ocrWorker = await Tesseract.createWorker('eng', 1, {
                 logger: m => {
@@ -51,7 +50,6 @@ export async function convertPdfToDocx(file: File, options: ConversionOptions): 
                 }
             });
         } catch (error) {
-            console.error("Failed to initialize Tesseract Worker:", error);
         }
     }
 
@@ -99,12 +97,9 @@ export async function convertPdfToDocx(file: File, options: ConversionOptions): 
                 if (options.useOcr && ocrWorker) {
                     try {
                         currentPageForOcr = i;
-                        console.log(`Starting OCR for page ${i}...`);
                         const { data: { text } } = await ocrWorker.recognize(base64Data);
                         extractedText = text;
-                        console.log(`OCR Output for page ${i}:`, extractedText);
                     } catch (error) {
-                        console.error("OCR Failed:", error);
                     }
                 }
 
@@ -119,7 +114,6 @@ export async function convertPdfToDocx(file: File, options: ConversionOptions): 
                         }
                     }
                 } else {
-                    console.log(`Inserting fallback ImageRun for page ${i}`);
                     // Fallback to inserting the scanned image into the Word Document if no text is found,
                     // or if the OCR couldn't figure it out.
                     docxElements.push(

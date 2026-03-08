@@ -58,7 +58,6 @@ export default function UnlockPdfTool() {
             toast.success("PDF unlocked successfully!");
 
         } catch (error: any) {
-            console.error(error);
             if (error.message?.includes("password")) {
                 toast.error("Incorrect password. Please try again.");
             } else {
@@ -91,7 +90,6 @@ export default function UnlockPdfTool() {
             document.body.removeChild(link);
             URL.revokeObjectURL(blobUrl);
         } catch (error) {
-            console.error("Download failed:", error);
             toast.error("Failed to download unlocked PDF safely.");
         }
     };
@@ -111,7 +109,7 @@ export default function UnlockPdfTool() {
             {files.length === 0 && (
                 <div className="mt-6 w-full max-w-7xl mx-auto">
                     <div className="rounded-xl border border-border bg-white shadow-xl p-4 md:p-8">
-                        <PdfUploader onUpload={handleUpload} />
+                        <PdfUploader onUpload={handleUpload} allowProtected={true} />
 
                         <div className="mt-8 rounded-xl bg-[#0081C9]/5 p-4 text-sm text-[#0081C9] border border-[#0081C9]/20 flex gap-3 mx-auto max-w-2xl">
                             <Icon name="shield-check" size={20} className="flex-shrink-0 mt-0.5" />

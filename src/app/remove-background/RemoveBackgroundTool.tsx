@@ -43,7 +43,6 @@ export default function RemoveBackgroundTool() {
 
     async function processSingleFile(currentFile: IntegratedFile) {
         try {
-            console.log("Removing background for", currentFile.file.name);
 
             // Dynamically import to drastically reduce initial page bundle size!
             const imgly = await import("@imgly/background-removal");
@@ -66,7 +65,6 @@ export default function RemoveBackgroundTool() {
             });
             return true;
         } catch (e) {
-            console.error(e);
             toast.error(`Error processing ${currentFile.file.name}.`);
             return false;
         }
@@ -158,7 +156,6 @@ export default function RemoveBackgroundTool() {
                 saveAs(blob, `${originalName}-nobg.png`);
             }
         } catch (error) {
-            console.error(error);
             toast.error("Failed to download processed images.");
         }
     };

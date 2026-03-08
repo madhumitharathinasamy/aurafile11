@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useState } from "react";
 import { siteConfig } from "@/config/site";
 
-import { Icon } from "@/components/ui/Icon";
 
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -16,7 +15,7 @@ export function Header() {
         <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-white/80 backdrop-blur-xl">
             <div className="container mx-auto flex h-16 max-w-[var(--container-width)] items-center justify-between px-4">
                 <Link href="/" className="flex items-center gap-2 text-xl font-bold z-10 w-48">
-                    <Image src="/favicon.ico" alt="Logo" width={32} height={32} className="rounded-[4px] shadow-sm" />
+                    <Image priority src="/favicon.ico" alt="Logo" width={32} height={32} className="rounded-[4px] shadow-sm" />
                     <span className="text-xl font-bold tracking-tight text-foreground">
                         Aura<span className="text-[#0081C9]">File</span>
                     </span>

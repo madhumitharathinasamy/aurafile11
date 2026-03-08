@@ -145,7 +145,6 @@ export default function ConvertTool() {
             }));
             return true;
         } catch (e) {
-            console.error(e);
             toast.error(`Error converting ${integratedFile.file.name}.`);
             return false;
         }
@@ -221,7 +220,6 @@ export default function ConvertTool() {
             document.body.removeChild(link);
             URL.revokeObjectURL(blobUrl);
         } catch (error) {
-            console.error("Download failed:", error);
             toast.error("Failed to download image safely.");
         }
     };
@@ -265,7 +263,6 @@ export default function ConvertTool() {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
         } catch (error) {
-            console.error("Download error:", error);
             toast.error("Failed to download zip file. Please try again.");
         }
     };

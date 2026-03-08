@@ -91,7 +91,6 @@ export function PdfPageGallery({ files, onPageStateChange }: PdfPageGalleryProps
                     onPageStateChange(allPages);
                 }
             } catch (error) {
-                console.error("Failed generating page gallery:", error);
             } finally {
                 if (isMounted) setIsGenerating(false);
             }

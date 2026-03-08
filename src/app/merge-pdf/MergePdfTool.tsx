@@ -149,7 +149,6 @@ export default function MergePdfTool() {
             };
 
             worker.onerror = (error) => {
-                console.error("Worker Error:", error);
                 toast.error("Failed to initialize merge worker.");
                 setIsProcessing(false);
                 worker.terminate();
@@ -161,7 +160,6 @@ export default function MergePdfTool() {
             });
 
         } catch (error) {
-            console.error(error);
             toast.error("Failed to prepare PDFs for merging.");
             setIsProcessing(false);
         }
@@ -183,7 +181,6 @@ export default function MergePdfTool() {
             document.body.removeChild(link);
             URL.revokeObjectURL(blobUrl);
         } catch (error) {
-            console.error("Download failed:", error);
             toast.error("Failed to download merged PDF safely.");
         }
     };

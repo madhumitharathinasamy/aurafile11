@@ -90,13 +90,11 @@ export async function generatePdfFromImages(files: (File | Blob)[], options: Ima
                 image = await pdfDoc.embedJpg(imageBytes);
             }
         } catch (error) {
-            console.error(`Failed to embed image ${i}:`, error);
             // If native parsing fails (e.g., malformed EXIF in JPG), attempt to sanitize via canvas
             try {
                 const sanitizedBytes = await convertToJpgBlob(file);
                 image = await pdfDoc.embedJpg(sanitizedBytes);
             } catch (fallbackError) {
-                console.error(`Fallback embedding failed for image ${i}:`, fallbackError);
                 continue; // Skip the image if both native and fallback fail
             }
         }

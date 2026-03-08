@@ -80,7 +80,6 @@ export default function PdfToWordTool() {
                 });
 
             } catch (error: any) {
-                console.error("Analysis Failed", error);
                 updateFileSettings(newFile.id, {
                     status: 'error',
                     error: "Failed to analyze PDF"
@@ -118,7 +117,6 @@ export default function PdfToWordTool() {
                     toast.success(`Converted ${file.file.name}`);
 
                 } catch (err: any) {
-                    console.error(err);
                     updateFileSettings(file.id, { status: 'error', error: err.message || "Conversion failed" });
                     toast.error(`Failed to convert ${file.file.name}`);
                 }
@@ -155,7 +153,6 @@ export default function PdfToWordTool() {
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
         } catch (error) {
-            console.error("Download failed:", error);
             toast.error("Failed to download converted PDFs.");
         }
     };

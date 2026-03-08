@@ -132,7 +132,6 @@ export async function processCompressImage(
 
         return await runCompression(quality);
     } catch (error: any) {
-        console.error("Compression Error:", error);
         // Better error message
         if (error.message && error.message.includes("Input buffer contains unsupported image format")) {
             throw new Error("Unsupported image format. Please convert to JPG or PNG.");

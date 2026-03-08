@@ -63,7 +63,6 @@ export function useLivePreview({
                     setPreviewSize(blob.size);
                 }
             } catch (error) {
-                console.error("Failed to generate live preview:", error);
             } finally {
                 if (isMounted) {
                     setIsGenerating(false);

@@ -6,11 +6,18 @@ import { themeConfig } from "@/config/theme";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
-import { Toaster } from "@/components/ui/Toaster";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import { ClientToaster } from "@/components/ui/ClientToaster";
 
-const inter = Inter({ subsets: ["latin"] });
+
+
+const inter = Inter({ subsets: ["latin"], display: "swap" });
+
+
+export const dynamic = "force-static";
+export const revalidate = 86400;
+
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${siteConfig.domain}`),
@@ -85,7 +92,7 @@ export default function RootLayout({
         {children}
         <Footer />
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
-        <Toaster />
+        <ClientToaster />
         <SpeedInsights />
         <Analytics />
       </body>
