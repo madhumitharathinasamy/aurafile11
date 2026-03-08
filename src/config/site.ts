@@ -5,7 +5,7 @@ export const siteConfig = {
     links: {
         github: "https://github.com/aurafile", // Placeholder
         twitter: "https://twitter.com/aurafile", // Placeholder
-        email: "aurafile.team@gmail.com",
+        email: "team@aurafile.net",
     },
     keywords: [
         "image tools",

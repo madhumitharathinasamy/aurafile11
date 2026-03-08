@@ -55,7 +55,7 @@ export default function PrivacyPolicy() {
 
                 <h2 className="mt-8 mb-4 text-foreground">6. Contact Us</h2>
                 <p>
-                    If you have any questions about this Privacy Policy, please contact us at: <a href="mailto:aurafile.team@gmail.com" className="text-primary hover:underline">aurafile.team@gmail.com</a>
+                    If you have any questions about this Privacy Policy, please contact us at: <a href="mailto:team@aurafile.net" className="text-primary hover:underline">team@aurafile.net</a>
                 </p>
             </div>
         </main>

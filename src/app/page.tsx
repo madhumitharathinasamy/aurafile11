@@ -37,7 +37,7 @@ export default function Home() {
               <Button href="/#tools" className="rounded-lg bg-[#0081C9] px-8 py-6 text-base font-bold text-white shadow-sm hover:bg-[#0070B8] transition-all w-full sm:w-auto">
                 {hero.ctaPrimary} <span className="ml-1">→</span>
               </Button>
-              <Button href="/#tools" variant="outline" className="rounded-lg bg-white border-2 border-slate-200 px-8 py-6 text-base font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-all w-full sm:w-auto">
+              <Button href="/#features" variant="outline" className="rounded-lg bg-white border-2 border-slate-200 px-8 py-6 text-base font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-all w-full sm:w-auto">
                 {hero.ctaSecondary}
               </Button>
             </div>
@@ -136,7 +136,7 @@ export default function Home() {
       </section>
 
       {/* Features/Benefits Section */}
-      <section className="py-20 md:py-24 bg-[#A3ADB8]">
+      <section id="features" className="py-20 md:py-24 bg-[#A3ADB8]">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4 max-w-[var(--container-width)] mx-auto text-center">
             {features.items.map((feature, i) => (

@@ -78,7 +78,7 @@ export default function AboutPage() {
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
                         <Button
-                            href="mailto:aurafile.team@gmail.com"
+                            href="mailto:team@aurafile.net"
                             variant="primary"
                             className="w-full sm:w-auto flex items-center gap-2"
                         >

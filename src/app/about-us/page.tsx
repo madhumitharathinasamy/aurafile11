@@ -39,7 +39,7 @@ export default function AboutUs() {
                 <p>
                     We are constantly improving and adding new tools. If you have feedback, suggestions, or just want to say hi, reach out to us at:
                     <br />
-                    <a href="mailto:aurafile.team@gmail.com" className="text-primary hover:underline font-medium">aurafile.team@gmail.com</a>
+                    <a href="mailto:team@aurafile.net" className="text-primary hover:underline font-medium">team@aurafile.net</a>
                 </p>
             </div>
         </main>

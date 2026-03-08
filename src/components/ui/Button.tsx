@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
@@ -11,7 +13,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     href?: string;
 }
 
-export function Button({ variant = "primary", className, href, children, ...props }: ButtonProps) {
+export function Button({ variant = "primary", className, href, children, onClick, ...props }: ButtonProps) {
     // Use global 'btn' class for shared physics (lift, scale, transition)
     const baseStyles = "btn text-sm font-semibold ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
 
@@ -25,8 +27,24 @@ export function Button({ variant = "primary", className, href, children, ...prop
     const rootClassName = cn(baseStyles, variants[variant], className);
 
     if (href) {
+        const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+            if (href.includes('#')) {
+                const targetId = href.split('#')[1];
+                const element = document.getElementById(targetId);
+                if (element) {
+                    e.preventDefault();
+                    element.scrollIntoView({ behavior: "smooth" });
+                    window.history.pushState(null, "", href);
+                }
+            }
+            if (onClick) {
+                // @ts-ignore
+                onClick(e);
+            }
+        };
+
         return (
-            <Link href={href} className={rootClassName}>
+            <Link href={href} className={rootClassName} onClick={handleClick}>
                 {children}
             </Link>
         );

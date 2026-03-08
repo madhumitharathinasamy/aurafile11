@@ -28,6 +28,17 @@ export function Header() {
                             key={item.href}
                             href={item.href}
                             className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900"
+                            onClick={(e) => {
+                                if (item.href.includes('#')) {
+                                    const id = item.href.split('#')[1];
+                                    const element = document.getElementById(id);
+                                    if (element) {
+                                        e.preventDefault();
+                                        element.scrollIntoView({ behavior: 'smooth' });
+                                        window.history.pushState(null, "", item.href);
+                                    }
+                                }
+                            }}
                         >
                             {item.title}
                         </Link>
@@ -36,7 +47,18 @@ export function Header() {
 
                 {/* Desktop Right Actions */}
                 <div className="hidden items-center justify-end gap-5 md:flex w-48">
-                    <Link href="/#tools" className="rounded-[6px] bg-[#0081C9] px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#0070B8] hover:shadow">
+                    <Link
+                        href="/#tools"
+                        className="rounded-[6px] bg-[#0081C9] px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#0070B8] hover:shadow"
+                        onClick={(e) => {
+                            const element = document.getElementById('tools');
+                            if (element) {
+                                e.preventDefault();
+                                element.scrollIntoView({ behavior: 'smooth' });
+                                window.history.pushState(null, "", "/#tools");
+                            }
+                        }}
+                    >
                         Get Started
                     </Link>
                 </div>
@@ -67,13 +89,36 @@ export function Header() {
                             key={item.href}
                             href={item.href}
                             className="rounded-md p-3 text-lg font-bold hover:bg-slate-50 text-slate-700"
-                            onClick={() => setIsMenuOpen(false)}
+                            onClick={(e) => {
+                                setIsMenuOpen(false);
+                                if (item.href.includes('#')) {
+                                    const id = item.href.split('#')[1];
+                                    const element = document.getElementById(id);
+                                    if (element) {
+                                        e.preventDefault();
+                                        setTimeout(() => element.scrollIntoView({ behavior: 'smooth' }), 100);
+                                        window.history.pushState(null, "", item.href);
+                                    }
+                                }
+                            }}
                         >
                             {item.title}
                         </Link>
                     ))}
                     <div className="flex flex-col gap-2 mt-2 pt-4 border-t border-slate-100">
-                        <Link href="/#tools" className="rounded-md bg-[#0081C9] p-3 text-lg font-bold text-white text-center shadow-sm" onClick={() => setIsMenuOpen(false)}>
+                        <Link
+                            href="/#tools"
+                            className="rounded-md bg-[#0081C9] p-3 text-lg font-bold text-white text-center shadow-sm"
+                            onClick={(e) => {
+                                setIsMenuOpen(false);
+                                const element = document.getElementById('tools');
+                                if (element) {
+                                    e.preventDefault();
+                                    setTimeout(() => element.scrollIntoView({ behavior: 'smooth' }), 100);
+                                    window.history.pushState(null, "", "/#tools");
+                                }
+                            }}
+                        >
                             Get Started
                         </Link>
                     </div>
