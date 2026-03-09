@@ -167,8 +167,6 @@ export default function MergePdfTool() {
         }
     };
 
-    const [mergedBlob, setMergedBlob] = useState<Blob | null>(null);
-
     const downloadFile = async () => {
         if (!mergedBlob) return;
 
