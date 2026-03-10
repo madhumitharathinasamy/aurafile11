@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import UnlockPdfTool from "./UnlockPdfTool";
+import { UnlockPdfToolLoader } from "./UnlockPdfToolLoader";
 import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
 
 export const metadata: Metadata = {
@@ -66,7 +66,7 @@ export default function UnlockPdfPage() {
         <ToolPageLayout
             title="Unlock PDF"
             description="Instantly remove password protection and security restrictions from your PDF files."
-            toolComponent={<UnlockPdfTool />}
+            toolComponent={<UnlockPdfToolLoader />}
             howItWorks={steps}
             benefits={benefits}
             faq={faq}

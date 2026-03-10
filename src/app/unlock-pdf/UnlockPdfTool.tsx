@@ -5,9 +5,8 @@ import { PdfUploader } from "@/components/tools/PdfUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
-import { PDFDocument } from "@cantoo/pdf-lib";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { saveAs } from "file-saver";
+
 
 export default function UnlockPdfTool() {
     const {
@@ -44,6 +43,7 @@ export default function UnlockPdfTool() {
             const arrayBuffer = await activeFile.file.arrayBuffer();
 
             // pdf-lib accepts password in load options to decrypt
+            const { PDFDocument } = await import("@cantoo/pdf-lib");
             const pdfDoc = await PDFDocument.load(arrayBuffer, { password: password } as any);
 
             const pdfBytes = await pdfDoc.save();

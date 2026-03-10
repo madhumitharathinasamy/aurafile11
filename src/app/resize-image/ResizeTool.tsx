@@ -6,9 +6,8 @@ import { ImageUploader } from "@/components/tools/ImageUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
 import { Icon } from "@/components/ui/Icon";
 import { resizeImageClient } from "@/lib/processing/resize";
-import JSZip from "jszip";
-import { saveAs } from "file-saver";
 import { useFileUpload } from "@/hooks/useFileUpload";
+
 
 import { ToolSettingsRenderer, SettingGroup, SettingRow, ToggleRow, SelectRow } from "@/components/tools/ToolSettingsRenderer";
 import { ResizeSettings } from "./types";
@@ -206,6 +205,10 @@ export default function ResizeTool() {
     const handleDownload = async () => {
         try {
             if (applyToAll && isBatchMode) {
+                const [{ default: JSZip }, { saveAs }] = await Promise.all([
+                    import("jszip"),
+                    import("file-saver")
+                ]);
                 const zip = new JSZip();
                 const promises = files.map(async (fileMeta) => {
                     if (!fileMeta.settings.isResized || !resizedBlobs[fileMeta.id]) return;
@@ -232,6 +235,7 @@ export default function ResizeTool() {
                     : (activeFile.settings.format.split('/')[1] || "jpg"));
                 const ext = targetFormat === "jpeg" ? "jpg" : targetFormat;
                 const originalName = activeFile.file.name.substring(0, activeFile.file.name.lastIndexOf('.')) || activeFile.file.name;
+                const { saveAs } = await import("file-saver");
                 saveAs(blob, `${originalName}-resized.${ext}`);
             }
         } catch (error) {
@@ -239,7 +243,7 @@ export default function ResizeTool() {
         }
     };
 
-    const isAllReady = applyToAll && files.length > 0 && files.every(f => f.settings.isResized && resizedUrls[f.id]);
+    const isAllReady = applyToAll && files.length > 0 && files.every((f: any) => f.settings.isResized && resizedUrls[f.id]);
     const isCurrentReady = !applyToAll && activeFile && activeFile.settings.isResized && resizedUrls[activeFile.id];
 
     const handlePrimaryAction = () => {

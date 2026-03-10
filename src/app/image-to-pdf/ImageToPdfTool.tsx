@@ -8,8 +8,9 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useDropzone } from "react-dropzone";
 import { UPLOAD_LIMITS } from "@/config/limits";
 import { toast } from "sonner";
-import { generatePdfFromImages, PageSizeOption, MarginOption } from "@/lib/pdf-processing/image-to-pdf";
-import { saveAs } from "file-saver";
+
+type PageSizeOption = "a4-p" | "a4-l" | "us-letter";
+type MarginOption = "none" | "small" | "large";
 
 export default function ImageToPdfTool() {
     const {
@@ -91,6 +92,7 @@ export default function ImageToPdfTool() {
         setIsProcessing(true);
         try {
             const rawFiles = files.map(f => f.file);
+            const { generatePdfFromImages } = await import("@/lib/pdf-processing/image-to-pdf");
             const blob = await generatePdfFromImages(rawFiles, {
                 pageSize,
                 margin,

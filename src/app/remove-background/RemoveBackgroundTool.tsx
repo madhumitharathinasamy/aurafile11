@@ -75,7 +75,7 @@ export default function RemoveBackgroundTool() {
                         const pct = total ? Math.round((current / total) * 100) : 0;
                         setProgressStats(prev => ({
                             ...prev,
-                            [currentFile.id]: { status: 'fetching', percentage: pct, message: `Downloading AI Model (${pct}%)` }
+                            [currentFile.id]: { status: 'fetching', percentage: pct, message: pct === 100 ? 'AI Model Loaded' : `Loading AI Model (${pct}%)` }
                         }));
                     } else if (key.startsWith('compute:')) {
                         const pct = total ? Math.round((current / total) * 100) : 0;
@@ -275,7 +275,7 @@ export default function RemoveBackgroundTool() {
                                             </div>
                                         </div>
                                         <p className="text-xs text-slate-400 mt-4 text-center px-4">
-                                            {stat.status === 'fetching' && "First run only: safely downloading the ML core to your browser cache."}
+                                            {stat.status === 'fetching' && "Reading the ML model from your browser cache (or downloading if first time)."}
                                             {stat.status === 'computing' && "Running neural network over your image pixels securely."}
                                         </p>
                                     </div>
@@ -306,7 +306,7 @@ export default function RemoveBackgroundTool() {
                                 <Icon name="zap" size={16} /> 100% Client-Side Private AI
                             </p>
                             <p className="text-muted-foreground text-xs leading-relaxed">
-                                The AI model runs entirely in your browser using WebAssembly. Note: the first time you use this tool, it may take 5-15 seconds to download the model into your browser cache.
+                                The AI model runs entirely in your browser using WebAssembly. Note: the first time you use this tool, it may take 5-15 seconds to download the model into your browser. After that, it securely loads from your local cache.
                             </p>
                         </div>
                     </ToolSettingsRenderer>
