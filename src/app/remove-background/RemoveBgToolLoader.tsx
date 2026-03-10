@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { UploaderSkeleton } from "@/components/ui/UploaderSkeleton";
 
 const RemoveBgTool = dynamic(() => import("./RemoveBgTool"), {
     ssr: false,
-    loading: () => <div className="h-[400px] w-full rounded-xl border border-dashed border-border bg-slate-50/50 animate-pulse" />
+    loading: () => <UploaderSkeleton type="image" />
 });
 
 export function RemoveBgToolLoader() {
