@@ -117,7 +117,7 @@ export function ToolModal({
                             )}
 
                             {/* Close Button */}
-                            <button onClick={onClose} className="p-1 -mr-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0 flex items-center justify-center">
+                            <button aria-label="Close Modal" onClick={onClose} className="p-1 -mr-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0 flex items-center justify-center">
                                 <Icon name="x" size={22} />
                             </button>
                         </div>
@@ -151,11 +151,11 @@ export function ToolModal({
 
                                 {/* Zoom Controller */}
                                 <div className="absolute bottom-4 right-4 z-40 flex items-center bg-white shadow-md rounded-lg border border-slate-200 overflow-hidden">
-                                    <button onClick={() => setZoom(z => Math.max(50, z - 25))} className="p-2 text-muted-foreground hover:bg-slate-50 hover:text-slate-800">
+                                    <button aria-label="Zoom Out" onClick={() => setZoom(z => Math.max(50, z - 25))} className="p-2 text-muted-foreground hover:bg-slate-50 hover:text-slate-800">
                                         <Icon name="minus" size={16} />
                                     </button>
                                     <div className="px-2 text-xs font-semibold text-slate-700 w-12 text-center select-none cursor-pointer" onClick={() => setZoom(100)}>{zoom}%</div>
-                                    <button onClick={() => setZoom(z => Math.min(200, z + 25))} className="p-2 text-muted-foreground hover:bg-slate-50 hover:text-slate-800">
+                                    <button aria-label="Zoom In" onClick={() => setZoom(z => Math.min(200, z + 25))} className="p-2 text-muted-foreground hover:bg-slate-50 hover:text-slate-800">
                                         <Icon name="plus" size={16} />
                                     </button>
                                 </div>
@@ -164,12 +164,14 @@ export function ToolModal({
                                 {isBatch && !isBatchView && (
                                     <>
                                         <button
+                                            aria-label="Previous File"
                                             onClick={handlePrevious}
                                             className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm shadow-md border border-border/50 rounded-full flex items-center justify-center text-muted-foreground hover:text-slate-800 z-30 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
                                         >
                                             <Icon name="chevron-left" size={24} />
                                         </button>
                                         <button
+                                            aria-label="Next File"
                                             onClick={handleNext}
                                             className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm shadow-md border border-border/50 rounded-full flex items-center justify-center text-muted-foreground hover:text-slate-800 z-30 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
                                         >

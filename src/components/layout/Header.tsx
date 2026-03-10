@@ -30,7 +30,10 @@ export function Header() {
 
                     {/* Image Tools Dropdown */}
                     <div className="relative group py-4">
-                        <button className="flex items-center gap-1 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900 focus:outline-none">
+                        <button
+                            aria-label="Image Tools Menu"
+                            className="flex items-center gap-1 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900 focus:outline-none"
+                        >
                             Image Tools
                             <Icon name="chevron-down" size={14} className="transition-transform group-hover:rotate-180" />
                         </button>
@@ -55,7 +58,10 @@ export function Header() {
 
                     {/* PDF Tools Dropdown */}
                     <div className="relative group py-4">
-                        <button className="flex items-center gap-1 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900 focus:outline-none">
+                        <button
+                            aria-label="PDF Tools Menu"
+                            className="flex items-center gap-1 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900 focus:outline-none"
+                        >
                             PDF Tools
                             <Icon name="chevron-down" size={14} className="transition-transform group-hover:rotate-180" />
                         </button>

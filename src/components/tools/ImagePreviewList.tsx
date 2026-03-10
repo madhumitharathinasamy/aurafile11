@@ -75,6 +75,7 @@ export function ImagePreviewList({
 
                             {/* Remove button (top right) */}
                             <button
+                                aria-label="Remove image"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onRemove(item.id);
