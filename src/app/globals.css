@@ -69,7 +69,23 @@ a {
   background: var(--gradient-accent);
   color: var(--primary-foreground);
   box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
-  /* Subtle glow for "slightly gradient" feel */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
+}
+
+.text-gradient-primary {
+  background-image: var(--gradient-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bg-grid-slate {
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 30px 30px;
 }
 
 .btn-secondary {

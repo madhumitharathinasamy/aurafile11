@@ -38,7 +38,7 @@ export default function ToolPageLayout({
                     <SectionDescription className="max-w-2xl mx-auto text-slate-600 mb-10">{description}</SectionDescription>
 
                     {/* Tool Slot - Professional Dashboard wrapping without extra borders */}
-                    <div className="w-full relative z-10">
+                    <div className="w-full relative z-10 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] text-left">
                         {toolComponent}
                     </div>
                 </div>

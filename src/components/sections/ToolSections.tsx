@@ -23,8 +23,8 @@ export interface FAQItem {
 
 export function SEOAndSpecsSection({ howItWorks, benefits, theme = "blue", specs }: { howItWorks: Step[], benefits: Benefit[], theme?: "blue" | "red", specs?: {label: string, value: string}[] }) {
     const isRed = theme === "red";
-    const iconColor = isRed ? "text-red-600 bg-red-50" : "text-[#0081C9] bg-[#0081C9]/5";
-    const primaryColor = isRed ? "text-red-600" : "text-[#0081C9]";
+    const iconColor = isRed ? "text-red-600 bg-red-50" : "text-[#00B4D8] bg-[#00B4D8]/5";
+    const primaryColor = isRed ? "text-red-600" : "text-[#00B4D8]";
     
     // Default generic specs if not provided
     const _specs = specs || [
@@ -131,7 +131,7 @@ export function FAQSection({ items }: { items: FAQItem[] }) {
                         <details key={index} className="group rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100/50 open:bg-white open:shadow-md transition-all">
                             <summary className="flex cursor-pointer items-center justify-between p-6 list-none focus:outline-none">
                                 <span className="text-lg font-bold text-slate-800">{item.question}</span>
-                                <span className="transition-transform duration-300 group-open:rotate-180 text-slate-400 group-open:text-[#0081C9]">
+                                <span className="transition-transform duration-300 group-open:rotate-180 text-slate-400 group-open:text-[#00B4D8]">
                                     <Icon name="chevron-down" size={20} />
                                 </span>
                             </summary>
@@ -148,7 +148,7 @@ export function FAQSection({ items }: { items: FAQItem[] }) {
 
 export function PrivacyBadge({ theme = "blue" }: { theme?: "blue" | "red" }) {
     const isRed = theme === "red";
-    const dotColor = isRed ? "bg-red-500" : "bg-[#0081C9]";
+    const dotColor = isRed ? "bg-red-500" : "bg-[#00B4D8]";
 
     return (
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 mb-6 animate-fade-up">

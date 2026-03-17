@@ -18,14 +18,14 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col animate-fade-in">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-16 md:pt-32 md:pb-24 bg-[#F8FAFC]">
+      <section className="relative overflow-hidden pt-20 pb-16 md:pt-32 md:pb-24 bg-grid-slate bg-[#F8FAFC]">
         <div className="absolute left-[5%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[#E0F2FE] blur-[100px] opacity-70"></div>
         <div className="absolute right-[5%] top-[10%] h-[400px] w-[400px] rounded-full bg-[#E0F2FE] blur-[100px] opacity-60"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="mx-auto max-w-4xl text-center">
             {/* Trusted Badge */}
             <div className="mb-10 inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-600 shadow-sm">
-              <span className="mr-2 h-2.5 w-2.5 rounded-full bg-[#0081C9]"></span>
+              <span className="mr-2 h-2.5 w-2.5 rounded-full bg-[#00B4D8]"></span>
               {hero.trustedText}
             </div>
 
@@ -39,7 +39,7 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-16">
-              <Button href="/#tools" className="rounded-lg bg-[#0081C9] px-8 py-6 text-base font-bold text-white shadow-sm hover:bg-[#0070B8] transition-all w-full sm:w-auto">
+              <Button href="/#tools" className="rounded-lg bg-[#00B4D8] px-8 py-6 text-base font-bold text-white shadow-sm hover:bg-[#0096b7] transition-all w-full sm:w-auto">
                 {hero.ctaPrimary} <span className="ml-1">→</span>
               </Button>
               <Button href="/#features" variant="outline" className="rounded-lg bg-white border-2 border-slate-200 px-8 py-6 text-base font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-all w-full sm:w-auto">
@@ -51,7 +51,7 @@ export default function Home() {
             <div className="flex flex-wrap justify-center gap-8 md:gap-12 text-sm font-bold text-slate-600">
               {hero.benefits.map((benefit, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Icon name={benefit.icon} size={18} className="text-[#0081C9]" />
+                  <Icon name={benefit.icon} size={18} className="text-[#00B4D8]" />
                   {benefit.text}
                 </div>
               ))}

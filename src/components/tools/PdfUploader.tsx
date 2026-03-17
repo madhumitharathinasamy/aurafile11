@@ -97,18 +97,18 @@ export function PdfUploader({ onUpload, maxFiles = UPLOAD_LIMITS.MAX_FILES, allo
             <div
                 {...getRootProps()}
                 className={`relative flex flex-col items-center justify-center gap-4 p-10 md:p-14 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 ${isDragActive
-                    ? "border-[#0081C9] bg-[#0081C9]/5 shadow-[inset_0_0_30px_rgba(0,129,201,0.05)] scale-[1.01]"
-                    : "border-slate-300 hover:border-[#0081C9]/50 bg-slate-50 shadow-inner"
+                    ? "border-[#00B4D8] bg-[#00B4D8]/5 shadow-[inset_0_0_30px_rgba(0,180,216,0.05)] scale-[1.01]"
+                    : "border-slate-300 hover:border-[#00B4D8]/50 bg-slate-50 shadow-inner"
                     }`}
             >
-                <input {...getInputProps()} />
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-sm ${isDragActive ? 'bg-[#0081C9] text-white animate-pulse' : 'bg-white text-[#0081C9]'}`}>
+                <input {...getInputProps()} data-testid="dropzone-file-input" />
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-sm ${isDragActive ? 'bg-[#00B4D8] text-white animate-pulse' : 'bg-white text-[#00B4D8]'}`}>
                     <Icon name="file-text" size={28} />
                 </div>
                 <div className="text-center">
                     <p className="text-slate-800 font-bold text-lg md:text-xl tracking-tight">Drag & drop your PDF{maxFiles > 1 ? "s" : ""} here</p>
                     <p className="text-slate-500 mt-1.5 text-sm">
-                        or <span className="text-[#0081C9] font-medium px-1 rounded hover:bg-[#0081C9]/10 transition-colors">click to browse</span> files
+                        or <span className="text-[#00B4D8] font-medium px-1 rounded hover:bg-[#00B4D8]/10 transition-colors">click to browse</span> files
                     </p>
                 </div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-2">
@@ -123,7 +123,7 @@ export function PdfUploader({ onUpload, maxFiles = UPLOAD_LIMITS.MAX_FILES, allo
                     </div>
                     <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-slate-200"></div>
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-                        <Icon name="cpu" size={16} className="text-[#0081C9]" />
+                        <Icon name="cpu" size={16} className="text-[#00B4D8]" />
                         Powered by WebAssembly
                     </div>
                 </div>
