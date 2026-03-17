@@ -5,7 +5,7 @@ import { PdfUploader } from "@/components/tools/PdfUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
-import { PDFDocument } from "@cantoo/pdf-lib";
+
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { generatePdfPreview } from "@/lib/pdf-processing/pdf-preview";
 import { PdfSecuritySeo } from "@/components/seo/SeoContentBlocks";

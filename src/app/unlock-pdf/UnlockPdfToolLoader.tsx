@@ -3,11 +3,11 @@
 import dynamic from "next/dynamic";
 import { UploaderSkeleton } from "@/components/ui/UploaderSkeleton";
 
-const MergePdfTool = dynamic(() => import("./MergePdfTool"), {
+const UnlockPdfTool = dynamic(() => import("./UnlockPdfTool"), {
     ssr: false,
     loading: () => <UploaderSkeleton type="pdf" />
 });
 
-export function MergePdfToolLoader() {
-    return <MergePdfTool />;
+export function UnlockPdfToolLoader() {
+    return <UnlockPdfTool />;
 }

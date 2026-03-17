@@ -175,6 +175,7 @@ export function PdfPageGallery({ files, onPageStateChange }: PdfPageGalleryProps
                                             {/* Hover Overlay Actions */}
                                             <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[1px]">
                                                 <button
+                                                    aria-label="Rotate Page"
                                                     onClick={(e) => handleRotate(page.id, e)}
                                                     className="p-2 bg-white text-slate-700 hover:text-[#0081C9] rounded-full shadow-lg transform hover:scale-110 transition-all border border-transparent hover:border-[#0081C9]/20"
                                                     title="Rotate Page"
@@ -182,6 +183,7 @@ export function PdfPageGallery({ files, onPageStateChange }: PdfPageGalleryProps
                                                     <Icon name="rotate-cw" size={16} />
                                                 </button>
                                                 <button
+                                                    aria-label={page.deleted ? "Restore Page" : "Delete Page"}
                                                     onClick={(e) => handleDelete(page.id, e)}
                                                     className={`p-2 bg-white rounded-full shadow-lg transform hover:scale-110 transition-all border border-transparent ${page.deleted ? 'text-green-600 hover:border-green-200' : 'text-slate-700 hover:text-red-600 hover:border-red-200'}`}
                                                     title={page.deleted ? "Restore Page" : "Delete Page"}

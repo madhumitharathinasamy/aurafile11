@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { CompressToolLoader } from "./CompressToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+
 
 export const metadata: Metadata = {
     title: "Compress Image Online – Fast & Secure | AuraFile",

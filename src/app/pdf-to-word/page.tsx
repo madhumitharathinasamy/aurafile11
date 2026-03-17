@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PdfToWordToolLoader } from "./PdfToWordToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+
 
 export const metadata: Metadata = {
     title: "PDF to Word Converter – Editable DOCX | Aura File",

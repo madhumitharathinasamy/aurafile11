@@ -7,8 +7,7 @@ import { ImageComparison } from "@/components/tools/ImageComparison";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
 import { useFileUpload, type IntegratedFile } from "@/hooks/useFileUpload";
-import JSZip from "jszip";
-import { saveAs } from "file-saver";
+
 import { ToolSettingsRenderer, SettingGroup, SettingRow, ToggleRow, SelectRow } from "@/components/tools/ToolSettingsRenderer";
 
 type CompressStrategy = "lossy" | "lossless" | "auto";
@@ -194,6 +193,10 @@ export default function CompressTool() {
         try {
             if (applyToAll && isBatchMode && isAllCompressed) {
                 toast.info("Preparing ZIP file...");
+                const [{ default: JSZip }, { saveAs }] = await Promise.all([
+                    import("jszip"),
+                    import("file-saver")
+                ]);
                 const zip = new JSZip();
 
                 for (const fileMeta of files) {
@@ -227,6 +230,7 @@ export default function CompressTool() {
                 }
                 const originalName = activeFile.file.name.substring(0, activeFile.file.name.lastIndexOf('.')) || activeFile.file.name;
 
+                const { saveAs } = await import("file-saver");
                 saveAs(blob, `${originalName}-compressed.${targetExt}`);
             }
         } catch (error) {

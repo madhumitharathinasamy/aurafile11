@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MergePdfToolLoader } from "./MergePdfToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+
 
 export const metadata: Metadata = {
     title: "Merge PDF Online – Combine PDF Files | Aura File",

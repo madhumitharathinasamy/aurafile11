@@ -69,6 +69,7 @@ export function ResizeControls({
                     }`}
                 onClick={() => setLocked(!locked)}
                 title={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
+                aria-label={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
             >
                 <Icon name={locked ? "lock" : "unlock"} size={20} />
             </button>

@@ -5,7 +5,7 @@ import { ImageUploader } from "@/components/tools/ImageUploader";
 import { ToolModal } from "@/components/modal/ToolModal";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
-import { removeBackground, Config } from "@imgly/background-removal";
+
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { ToolSettingsRenderer, SettingGroup, ToggleRow, SelectRow, SettingRow } from "@/components/tools/ToolSettingsRenderer";
 import { ImageComparison } from "@/components/tools/ImageComparison";
@@ -153,15 +153,35 @@ export default function RemoveBgTool() {
         if (!activeFile || activeFile.settings.isDone) return;
 
         setIsProcessing(true);
-        setProgress("Preparing AI engine (first time only)…");
+        setProgress("Loading AI model…");
 
         try {
-            const config: Config = {
+            const { removeBackground } = await import("@imgly/background-removal");
+
+            // Track downloaded bytes to show model download progress
+            const downloadedBytes: { [key: string]: number } = {};
+            const totalBytes: { [key: string]: number } = {};
+
+            const config = {
                 model: activeFile.settings.model as any,
                 progress: (key: string, current: number, total: number) => {
-                    if (key === "compute:inference") {
+                    if (key.startsWith("fetch:")) {
+                        // Model download progress — show MB downloaded
+                        downloadedBytes[key] = current;
+                        totalBytes[key] = total;
+                        const totalDl = Object.values(downloadedBytes).reduce((a, b) => a + b, 0);
+                        const totalAll = Object.values(totalBytes).reduce((a, b) => a + b, 0);
+                        if (totalAll > 0) {
+                            const pct = Math.round((totalDl / totalAll) * 100);
+                            const mb = (totalDl / 1024 / 1024).toFixed(1);
+                            const totalMb = (totalAll / 1024 / 1024).toFixed(1);
+                            setProgress(`Downloading AI model… ${mb} / ${totalMb} MB (${pct}%)`);
+                        } else {
+                            setProgress("Downloading AI model… (cached)");
+                        }
+                    } else if (key === "compute:inference") {
                         const percent = Math.round((current / total) * 100);
-                        setProgress(`Removing Background... ${percent}%`);
+                        setProgress(`Removing background… ${percent}%`);
                     }
                 },
                 debug: false
@@ -176,7 +196,7 @@ export default function RemoveBgTool() {
                 isDone: true
             });
 
-            setProgress("Applying final touches...");
+            setProgress("Applying final touches…");
             await applyPostProcessing(activeFile.file, blob, activeFile.settings, activeFile.id);
 
             toast.success("Background removed successfully!");
@@ -209,10 +229,20 @@ export default function RemoveBgTool() {
     const customPreview = activeFile ? (
         <div className="w-full h-full p-4 md:p-8 flex items-center justify-center relative bg-[linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa),linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa)] bg-[length:20px_20px] bg-[position:0_0,10px_10px] bg-white">
             {isProcessing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-md z-50 text-center p-6">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-md z-50 text-center p-6 gap-4">
                     <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#0081C9] border-t-transparent" />
-                    <p className="mt-4 text-slate-800">{progress}</p>
-                    {!progress.includes("Removing") && <p className="text-muted-foreground mt-2">This may take 10–20 seconds.</p>}
+                    <div>
+                        <p className="text-slate-800 font-semibold text-sm">{progress || "Preparing…"}</p>
+                        {progress.includes("Downloading") && (
+                            <p className="text-muted-foreground text-xs mt-1">The AI model is cached after the first download.</p>
+                        )}
+                        {progress.includes("Removing") && (
+                            <p className="text-muted-foreground text-xs mt-1">Analysing edges and subject…</p>
+                        )}
+                        {!progress.includes("Downloading") && !progress.includes("Removing") && (
+                            <p className="text-muted-foreground text-xs mt-1">This may take up to 20 seconds on first use.</p>
+                        )}
+                    </div>
                 </div>
             )}
 

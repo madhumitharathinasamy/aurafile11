@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { ResizeToolLoader } from "./ResizeToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+
 
 export const metadata: Metadata = {
     title: "Image Resizer for Social Media – Resize Online Free | AuraFile",
