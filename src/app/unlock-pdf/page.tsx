@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { UnlockPdfToolLoader } from "./UnlockPdfToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+
 
 export const metadata: Metadata = {
     title: "Unlock PDF – Remove Password Securely | Aura File",

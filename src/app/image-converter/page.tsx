@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { ConvertToolLoader } from "./ConvertToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+
 
 export const metadata: Metadata = {
     title: "Convert Image Online - JPG PNG WebP AVIF | AuraFile",

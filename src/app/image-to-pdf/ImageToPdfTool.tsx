@@ -102,19 +102,6 @@ export default function ImageToPdfTool() {
             setIsDone(true);
             toast.success("PDF generated successfully!");
 
-            // Auto download on first generation using the same robust method
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.style.display = "none";
-            a.href = url;
-            a.download = `aurafile_merged_images.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
-
         } catch (error) {
             toast.error("Failed to generate PDF. Check console for details.");
         } finally {

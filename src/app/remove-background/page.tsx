@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { RemoveBgToolLoader } from './RemoveBgToolLoader';
-import ToolPageLayout, { Step, Benefit, FAQItem } from '@/components/tools/ToolPageLayout';
+import ToolPageLayout, { Step, Benefit, FAQItem } from '@/components/tools/ToolPageLayout';export const dynamic = 'force-static';
+
 
 export const metadata: Metadata = {
     title: 'Remove Background Online – AI Background Remover | AuraFile',
