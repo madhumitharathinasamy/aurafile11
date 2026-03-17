@@ -1,7 +1,7 @@
 import React from 'react';
 import { PageTitle, SectionDescription } from "@/components/ui/typography";
-import { HowItWorksSection, BenefitsSection, FAQSection, PrivacyBadge, Step, Benefit, FAQItem } from "@/components/sections/ToolSections";
-import { IconName } from "@/components/ui/Icon";
+import { SEOAndSpecsSection, FAQSection, Step, Benefit, FAQItem, PrivacyBadge } from "@/components/sections/ToolSections";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 interface ToolPageLayoutProps {
     title: string;
@@ -10,6 +10,7 @@ interface ToolPageLayoutProps {
     howItWorks: Step[];
     benefits: Benefit[];
     faq: FAQItem[];
+    specs?: {label: string, value: string}[];
     backgroundImage?: string;
     theme?: "blue" | "red";
 }
@@ -21,36 +22,43 @@ export default function ToolPageLayout({
     howItWorks,
     benefits,
     faq,
+    specs,
     theme = "blue"
 }: ToolPageLayoutProps) {
     const isRed = theme === "red";
-    const gradientColor = isRed ? "from-red-500/5" : "from-primary/5";
-    const shadowColor = isRed ? "shadow-red-500/5" : "shadow-primary/5";
-
+    
+    // Create a subtle grid patterned hero background
     return (
-        <div className="min-h-screen bg-background">
-            {/* 1. Hero Section */}
-            <section className={`relative pt-4 pb-8 md:pt-6 md:pb-12 border-b border-border/40 bg-gradient-to-b ${gradientColor} via-background to-background`}>
+        <div className="min-h-screen bg-white">
+            {/* 1. Hero Section - Clean Minimal Background */}
+            <section className="relative pt-12 pb-16 border-b border-border/40 bg-slate-50/50">
                 <div className="container mx-auto px-4 md:px-8 max-w-7xl text-center">
                     <PrivacyBadge theme={theme} />
-                    <PageTitle className="mb-4">{title}</PageTitle>
-                    <SectionDescription className="max-w-2xl mx-auto">{description}</SectionDescription>
+                    <PageTitle className="mb-4 text-slate-900">{title}</PageTitle>
+                    <SectionDescription className="max-w-2xl mx-auto text-slate-600 mb-10">{description}</SectionDescription>
 
-                    {/* Tool Slot - The main interactive component */}
+                    {/* Tool Slot - Professional Dashboard wrapping without extra borders */}
                     <div className="w-full relative z-10">
                         {toolComponent}
                     </div>
                 </div>
             </section>
 
-            {/* 2. How It Works Section */}
-            <HowItWorksSection steps={howItWorks} theme={theme} />
+            {/* Below the fold content with Lazy Loading */}
+            <ScrollReveal>
+                <div className="pb-16 pt-8">
+                    {/* 2. SEO & Specs Grid Layout */}
+                    <SEOAndSpecsSection 
+                        howItWorks={howItWorks} 
+                        benefits={benefits} 
+                        theme={theme} 
+                        specs={specs} 
+                    />
 
-            {/* 3. Benefits Section */}
-            <BenefitsSection benefits={benefits} theme={theme} />
-
-            {/* 4. FAQ Section */}
-            <FAQSection items={faq} />
+                    {/* 3. FAQ Section */}
+                    <FAQSection items={faq} />
+                </div>
+            </ScrollReveal>
         </div>
     );
 }

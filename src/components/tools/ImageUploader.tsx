@@ -81,24 +81,37 @@ export function ImageUploader({
         <div className="w-full max-w-4xl mx-auto">
             <div
                 {...getRootProps()}
-                className={`relative flex flex-col items-center justify-center gap-4 p-12 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 ${isDragActive
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50 hover:bg-muted/50 bg-surface"
+                className={`relative flex flex-col items-center justify-center gap-4 p-10 md:p-14 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 ${isDragActive
+                    ? "border-[#0081C9] bg-[#0081C9]/5 shadow-[inset_0_0_30px_rgba(0,129,201,0.05)] scale-[1.01]"
+                    : "border-slate-300 hover:border-[#0081C9]/50 bg-slate-50 shadow-inner"
                     }`}
             >
                 <input {...getInputProps()} data-testid="dropzone-file-input" />
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${isDragActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-sm ${isDragActive ? 'bg-[#0081C9] text-white animate-pulse' : 'bg-white text-[#0081C9]'}`}>
                     <Icon name="upload" size={28} />
                 </div>
                 <div className="text-center">
-                    <p className="">Drag & drop your images</p>
-                    <p className="text-muted-foreground mt-1">
-                        or <span className="text-primary font-medium">browse</span> to choose files
+                    <p className="text-slate-800 font-bold text-lg md:text-xl tracking-tight">Drag & drop your images here</p>
+                    <p className="text-slate-500 mt-1.5 text-sm">
+                        or <span className="text-[#0081C9] font-medium px-1 rounded hover:bg-[#0081C9]/10 transition-colors">click to browse</span> files
                     </p>
                 </div>
-                <p className="text-muted-foreground">
-                    Supports JPG, PNG, WEBP, GIF • Max {Math.round(maxSize / (1024 * 1024))}MB • Up to {maxFiles} files
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-2">
+                    Supports JPG, PNG, WEBP, GIF, TIFF, BMP • Max {Math.round(maxSize / (1024 * 1024))}MB • Up to {maxFiles} files
                 </p>
+
+                {/* Trust Seals */}
+                <div className="flex flex-wrap items-center justify-center gap-3 md:gap-5 mt-6 pt-6 border-t border-slate-200/60 w-full max-w-sm">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                        <Icon name="shield-check" size={16} className="text-emerald-500" />
+                        100% Private
+                    </div>
+                    <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-slate-200"></div>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                        <Icon name="cpu" size={16} className="text-[#0081C9]" />
+                        Powered by WebAssembly
+                    </div>
+                </div>
             </div>
         </div>
     );
