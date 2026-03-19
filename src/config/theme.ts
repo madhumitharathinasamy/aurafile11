@@ -1,6 +1,6 @@
 export const themeConfig = {
     colors: {
-        background: "#f5f5f5",  // Light gray background
+        background: "#f8fafc",  // Light gray background
         foreground: "#111111",  // Text
         primary: "#0070f3",     // New Primary Blue
         primaryForeground: "#ffffff",
@@ -10,7 +10,7 @@ export const themeConfig = {
         border: "#eaeaea",      // Border
         input: "#eaeaea",       // Input Border
         surface: "#ffffff",     // Card Background (Surface)
-        textSecondary: "#666666", // Secondary Text
+        textSecondary: "#475569", // Secondary Text
         textMuted: "#888888",     // Muted Text
         divider: "#eaeaea",
         ring: "#0070f3",        // Focus Ring
@@ -21,6 +21,11 @@ export const themeConfig = {
         sans: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
         mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
         serif: "'Crimson Pro', serif",
+    },
+    brand: {
+        sky: '#0ea5e9',
+        navy: '#0f172a',
+        gradient: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)'
     },
     spacing: {
         container: "1280px",

@@ -18,7 +18,7 @@ export function Header() {
                 <Link href="/" className="flex items-center gap-2 text-xl font-bold z-10 w-48">
                     <Image priority src="/favicon.ico" alt="Logo" width={32} height={32} className="rounded-[4px] shadow-sm" />
                     <span className="text-xl font-bold tracking-tight text-foreground">
-                        Aura<span className="text-[#0081C9]">File</span>
+                        Aura<span className="text-[#00B4D8]">File</span>
                     </span>
                 </Link>
 
@@ -43,7 +43,7 @@ export function Header() {
                             <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-slate-100 p-6 grid grid-cols-2 gap-4 relative overflow-hidden">
                                 {siteConfig.home.tools.image.map((tool) => (
                                     <Link key={tool.title} href={tool.href} className="flex gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors group/item">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#0081C9]/10 text-[#0081C9] group-hover/item:bg-[#0081C9]/20 transition-colors">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#00B4D8]/10 text-[#00B4D8] group-hover/item:bg-[#00B4D8]/20 transition-colors">
                                             <Icon name={tool.icon} size={20} />
                                         </div>
                                         <div>
@@ -71,7 +71,7 @@ export function Header() {
                             <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-slate-100 p-6 grid grid-cols-2 gap-4 relative overflow-hidden">
                                 {siteConfig.home.tools.pdf.map((tool) => (
                                     <Link key={tool.title} href={tool.href} className="flex gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors group/item">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#0081C9]/10 text-[#0081C9] group-hover/item:bg-[#0081C9]/20 transition-colors">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#00B4D8]/10 text-[#00B4D8] group-hover/item:bg-[#00B4D8]/20 transition-colors">
                                             <Icon name={tool.icon} size={20} />
                                         </div>
                                         <div>
@@ -84,6 +84,9 @@ export function Header() {
                         </div>
                     </div>
 
+                    <Link href="/blog" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
+                        Blog
+                    </Link>
                     <Link href="/about" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
                         About
                     </Link>
@@ -96,7 +99,7 @@ export function Header() {
                 <div className="hidden items-center justify-end gap-5 md:flex w-48">
                     <Link
                         href="/#tools"
-                        className="rounded-[6px] bg-[#0081C9] px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#0070B8] hover:shadow"
+                        className="rounded-[6px] border-2 border-[#00B4D8] px-4 py-2 text-sm font-bold text-[#00B4D8] bg-transparent shadow-sm transition-all hover:bg-[#00B4D8]/10 hover:shadow"
                         onClick={(e) => {
                             const element = document.getElementById('tools');
                             if (element) {
@@ -164,6 +167,9 @@ export function Header() {
                             </div>
                         </div>
 
+                        <Link href="/blog" className="rounded-md p-3 text-lg font-bold hover:bg-slate-50 text-slate-700" onClick={() => setIsMenuOpen(false)}>
+                            Blog
+                        </Link>
                         <Link href="/about" className="rounded-md p-3 text-lg font-bold hover:bg-slate-50 text-slate-700" onClick={() => setIsMenuOpen(false)}>
                             About
                         </Link>
@@ -174,7 +180,7 @@ export function Header() {
                     <div className="flex flex-col gap-2 mt-2 pt-4 border-t border-slate-100">
                         <Link
                             href="/#tools"
-                            className="rounded-md bg-[#0081C9] p-3 text-lg font-bold text-white text-center shadow-sm"
+                            className="rounded-md border-2 border-[#00B4D8] p-3 text-lg font-bold text-[#00B4D8] bg-transparent text-center shadow-sm hover:bg-[#00B4D8]/10 transition-colors"
                             onClick={(e) => {
                                 setIsMenuOpen(false);
                                 const element = document.getElementById('tools');
