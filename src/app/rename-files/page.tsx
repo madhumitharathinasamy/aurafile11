@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import ToolPageLayout from "@/components/tools/ToolPageLayout";
 import RenameTool from "@/components/tools/RenameTool";
 
@@ -6,8 +6,8 @@ export const dynamic = 'force-static';
 export const revalidate = 86400;
 
 export const metadata: Metadata = {
-  title: "Bulk Rename Files Online - Free & Private | AuraFile",
-  description: "Securely rename multiple files at once. Add prefixes, numbers, or replace text instantly in your browser without uploading to any server.",
+  title: "Rename Files in Bulk - Private, No Upload | AuraFile",
+  description: "Batch rename files with prefix, suffix, numbering and more. 100% browser-based, no uploads required. Free bulk file renamer.",
   alternates: {
     canonical: "https://aurafile.net/rename-files",
   },
@@ -16,36 +16,36 @@ export const metadata: Metadata = {
 export default function BulkRenamePage() {
   const howItWorks = [
     {
-      title: "Select Files",
-      description: "Drag and drop the files you want to rename into the area.",
+      title: "Rename Files in Bulk - Private, No Upload | AuraFile",
+      description: "Batch rename files with prefix, suffix, numbering and more. 100% browser-based, no uploads required. Free bulk file renamer.",
       icon: "upload" as const
     },
     {
-      title: "Set Rules",
-      description: "Define renaming rules like prefixes, find & replace, or numbering.",
+      title: "Rename Files in Bulk - Private, No Upload | AuraFile",
+      description: "Batch rename files with prefix, suffix, numbering and more. 100% browser-based, no uploads required. Free bulk file renamer.",
       icon: "settings" as const
     },
     {
-      title: "Preview & Download",
-      description: "View the new names instantly, then download them all as a completely organized ZIP file.",
+      title: "Rename Files in Bulk - Private, No Upload | AuraFile",
+      description: "Batch rename files with prefix, suffix, numbering and more. 100% browser-based, no uploads required. Free bulk file renamer.",
       icon: "download" as const
     }
   ];
 
   const benefits = [
     {
-      title: "100% Private",
-      description: "Your files never leave your device. Renaming and zipping happen locally in your browser.",
+      title: "Rename Files in Bulk - Private, No Upload | AuraFile",
+      description: "Batch rename files with prefix, suffix, numbering and more. 100% browser-based, no uploads required. Free bulk file renamer.",
       icon: "shield-check" as const
     },
     {
-      title: "Instant Processing",
-      description: "Rename hundreds of files in seconds without waiting for uploads or server operations.",
+      title: "Rename Files in Bulk - Private, No Upload | AuraFile",
+      description: "Batch rename files with prefix, suffix, numbering and more. 100% browser-based, no uploads required. Free bulk file renamer.",
       icon: "zap" as const
     },
     {
-      title: "Flexible Rules",
-      description: "Customize naming conventions perfectly with combination rules.",
+      title: "Rename Files in Bulk - Private, No Upload | AuraFile",
+      description: "Batch rename files with prefix, suffix, numbering and more. 100% browser-based, no uploads required. Free bulk file renamer.",
       icon: "sliders" as const
     }
   ];

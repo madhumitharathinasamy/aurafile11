@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { PdfToWordToolLoader } from "./PdfToWordToolLoader";
 import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
 
@@ -6,8 +6,8 @@ export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
-    title: "PDF to Word Converter – Editable DOCX | Aura File",
-    description: "Convert PDF files to editable Microsoft Word (DOCX) documents online. Preserve text and basic formatting.",
+    title: "PDF to Word - Private Converter, No Upload | AuraFile",
+    description: "Convert PDF to editable Word DOCX in your browser. No file uploads to any server. OCR support for scanned PDFs. Free and private.",
     alternates: {
         canonical: "https://aurafile.net/pdf-to-word",
     },
@@ -16,36 +16,36 @@ export const metadata: Metadata = {
 export default function PdfToWordPage() {
     const steps: Step[] = [
         {
-            title: "Upload PDF",
-            description: "Drag & drop your PDF file to begin extraction.",
+            title: "PDF to Word - Private Converter, No Upload | AuraFile",
+            description: "Convert PDF to editable Word DOCX in your browser. No file uploads to any server. OCR support for scanned PDFs. Free and private.",
             icon: "upload-cloud"
         },
         {
-            title: "Wait for Extraction",
-            description: "Our tool processes the PDF and extracts text content into a document structure.",
+            title: "PDF to Word - Private Converter, No Upload | AuraFile",
+            description: "Convert PDF to editable Word DOCX in your browser. No file uploads to any server. OCR support for scanned PDFs. Free and private.",
             icon: "file-text"
         },
         {
-            title: "Download Word Doc",
-            description: "Save the result as an editable .docx file compatible with Microsoft Word.",
+            title: "PDF to Word - Private Converter, No Upload | AuraFile",
+            description: "Convert PDF to editable Word DOCX in your browser. No file uploads to any server. OCR support for scanned PDFs. Free and private.",
             icon: "download"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "Editable Text",
-            description: "Convert read-only PDF text into fully editable Word paragraphs.",
+            title: "PDF to Word - Private Converter, No Upload | AuraFile",
+            description: "Convert PDF to editable Word DOCX in your browser. No file uploads to any server. OCR support for scanned PDFs. Free and private.",
             icon: "edit-3"
         },
         {
-            title: "Browser-Based",
-            description: "No software installation required. Works on Windows, Mac, and Linux.",
+            title: "PDF to Word - Private Converter, No Upload | AuraFile",
+            description: "Convert PDF to editable Word DOCX in your browser. No file uploads to any server. OCR support for scanned PDFs. Free and private.",
             icon: "globe"
         },
         {
-            title: "100% Free",
-            description: "Convert as many files as you need without any cost.",
+            title: "PDF to Word - Private Converter, No Upload | AuraFile",
+            description: "Convert PDF to editable Word DOCX in your browser. No file uploads to any server. OCR support for scanned PDFs. Free and private.",
             icon: "smile"
         }
     ];

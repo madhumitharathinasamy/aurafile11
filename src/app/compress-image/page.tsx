@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 import { CompressToolLoader } from "./CompressToolLoader";
 import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
 
@@ -6,8 +6,8 @@ export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
-    title: "Compress Image Online – Fast & Secure | AuraFile",
-    description: "Compress images online without quality loss. Secure, browser-based image compression. No uploads. Free and fast.",
+    title: "Compress Image - No Upload, 100% Private | AuraFile",
+    description: "Compress JPG, PNG & WebP images instantly in your browser. No file uploads, no servers. Your images never leave your device. Free & fast.",
     alternates: {
         canonical: "https://aurafile.net/compress-image",
     },
@@ -16,36 +16,36 @@ export const metadata: Metadata = {
 export default function CompressPage() {
     const steps: Step[] = [
         {
-            title: "Upload Images",
-            description: "Select up to 10 images (JPG, PNG, WEBP) to compress.",
+            title: "Compress Image - No Upload, 100% Private | AuraFile",
+            description: "Compress JPG, PNG & WebP images instantly in your browser. No file uploads, no servers. Your images never leave your device. Free & fast.",
             icon: "upload-cloud"
         },
         {
-            title: "Adjust Quality",
-            description: "Use the slider to find the perfect balance between size and quality.",
+            title: "Compress Image - No Upload, 100% Private | AuraFile",
+            description: "Compress JPG, PNG & WebP images instantly in your browser. No file uploads, no servers. Your images never leave your device. Free & fast.",
             icon: "sliders"
         },
         {
-            title: "Download",
-            description: "Download your smaller files instantly, individually or as a ZIP.",
+            title: "Compress Image - No Upload, 100% Private | AuraFile",
+            description: "Compress JPG, PNG & WebP images instantly in your browser. No file uploads, no servers. Your images never leave your device. Free & fast.",
             icon: "download"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "Smart Compression",
-            description: "Reduce file size by up to 80% while preserving visual quality using advanced algorithms.",
+            title: "Compress Image - No Upload, 100% Private | AuraFile",
+            description: "Compress JPG, PNG & WebP images instantly in your browser. No file uploads, no servers. Your images never leave your device. Free & fast.",
             icon: "cpu"
         },
         {
-            title: "Batch Processing",
-            description: "Compress multiple images at once. Oversized files are skipped automatically.",
+            title: "Compress Image - No Upload, 100% Private | AuraFile",
+            description: "Compress JPG, PNG & WebP images instantly in your browser. No file uploads, no servers. Your images never leave your device. Free & fast.",
             icon: "layers"
         },
         {
-            title: "Privacy First",
-            description: "No uploads. All processing happens locally in your browser for maximum security.",
+            title: "Compress Image - No Upload, 100% Private | AuraFile",
+            description: "Compress JPG, PNG & WebP images instantly in your browser. No file uploads, no servers. Your images never leave your device. Free & fast.",
             icon: "lock"
         }
     ];

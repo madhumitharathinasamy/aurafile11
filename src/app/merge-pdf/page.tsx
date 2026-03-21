@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { MergePdfToolLoader } from "./MergePdfToolLoader";
 import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
 
@@ -6,8 +6,8 @@ export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
-    title: "Merge PDF Online – Combine PDF Files | Aura File",
-    description: "Merge multiple PDF files into one document online for free. Reorder pages and combine securely.",
+    title: "Merge PDF Free - Private, No Upload | AuraFile",
+    description: "Combine multiple PDF files into one instantly in your browser. No uploads, no accounts. 100% private PDF merging. Free forever.",
     alternates: {
         canonical: "https://aurafile.net/merge-pdf",
     },
@@ -16,36 +16,36 @@ export const metadata: Metadata = {
 export default function MergePdfPage() {
     const steps: Step[] = [
         {
-            title: "Upload PDFs",
-            description: "Select multiple PDF files you want to combine.",
+            title: "Merge PDF Free - Private, No Upload | AuraFile",
+            description: "Combine multiple PDF files into one instantly in your browser. No uploads, no accounts. 100% private PDF merging. Free forever.",
             icon: "upload-cloud"
         },
         {
-            title: "Reorder",
-            description: "Drag the files to arrange them in the correct order.",
+            title: "Merge PDF Free - Private, No Upload | AuraFile",
+            description: "Combine multiple PDF files into one instantly in your browser. No uploads, no accounts. 100% private PDF merging. Free forever.",
             icon: "layers"
         },
         {
-            title: "Merge & Download",
-            description: "Click to merge them into a single PDF document instantly.",
+            title: "Merge PDF Free - Private, No Upload | AuraFile",
+            description: "Combine multiple PDF files into one instantly in your browser. No uploads, no accounts. 100% private PDF merging. Free forever.",
             icon: "download"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "Combine Reports",
-            description: "Merge separate report chapters or invoices into one easy-to-manage file.",
+            title: "Merge PDF Free - Private, No Upload | AuraFile",
+            description: "Combine multiple PDF files into one instantly in your browser. No uploads, no accounts. 100% private PDF merging. Free forever.",
             icon: "file-text"
         },
         {
-            title: "Secure Processing",
-            description: "Files are processed in your browser or a secure temporary worker and never stored.",
+            title: "Merge PDF Free - Private, No Upload | AuraFile",
+            description: "Combine multiple PDF files into one instantly in your browser. No uploads, no accounts. 100% private PDF merging. Free forever.",
             icon: "lock"
         },
         {
-            title: "Easy Organization",
-            description: "Clean up your digital workspace by consolidating related documents.",
+            title: "Merge PDF Free - Private, No Upload | AuraFile",
+            description: "Combine multiple PDF files into one instantly in your browser. No uploads, no accounts. 100% private PDF merging. Free forever.",
             icon: "folder"
         }
     ];

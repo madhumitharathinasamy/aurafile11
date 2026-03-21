@@ -19,6 +19,338 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: "how-to-compress-pdf-to-200kb",
+    title: "How to Compress PDF to 200KB for Job Applications and Government Portals",
+    excerpt: "Struggling with PDF size limits? Learn how to compress PDF files to 200KB without losing quality for job applications and government portals.",
+    date: "Mar 21, 2026",
+    readTime: "6 min read",
+    author: {
+      name: "Dhivya",
+      role: "Content Contributor",
+    },
+    image: "/images/blog/compress-pdf.png",
+    faqSchema: {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How can I reduce a PDF file size to 200KB?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You can compress the PDF by reducing image resolution, removing unnecessary data, and using a reliable compression tool."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will compressing a PDF reduce quality?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It may slightly reduce image quality, but text readability can be maintained with proper compression settings."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why do government portals require small file sizes?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "To manage storage efficiently and ensure faster uploads across large numbers of users."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I compress PDF without uploading it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Browser-based tools allow you to compress PDFs directly on your device without uploading them."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does AuraFile store my documents?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. AuraFile processes PDFs locally in your browser. Your files are never uploaded or stored."
+          }
+        }
+      ]
+    },
+    content: (
+      <div className="space-y-6 text-slate-700 leading-relaxed text-lg">
+        <p>There’s a very specific kind of frustration that only happens during online applications.</p>
+        <p>You’ve filled everything correctly.<br/>Uploaded all required documents.<br/>Double-checked every detail.</p>
+        <p>And then—</p>
+        <div className="bg-[#E0F2FE] border-l-4 border-[#00B4D8] p-4 text-slate-800 font-medium my-6">
+          👉 “File size must be less than 200KB”
+        </div>
+        <p>That one line stops everything.</p>
+        <p>You look at your file.</p>
+        <p>It’s 1.8 MB. Or 900 KB. Or sometimes even 300 KB—which still isn’t enough.</p>
+        <p>And suddenly, what should have taken five minutes turns into a long, frustrating process of trying different tools, compressing again and again, and hoping the quality doesn’t get ruined.</p>
+        <p>If you’ve been through this, you’re not alone.</p>
+        <p>This guide is for exactly that situation.</p>
+
+        <hr className="my-10 border-slate-200" />
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Why 200KB Limits Exist (And Why They’re So Strict)</h2>
+        <p>Many job portals and government websites have strict file size limits.</p>
+        <p>You’ll often see requirements like:</p>
+        <ul className="list-disc pl-6 space-y-2">
+          <li>Resume: under 200KB</li>
+          <li>Photo: under 50KB</li>
+          <li>Signature: under 20KB</li>
+        </ul>
+        <p className="mt-4">At first, it feels unreasonable. But there’s a reason behind it.</p>
+        <p>These systems:</p>
+        <ul className="list-disc pl-6 space-y-2">
+          <li>Handle thousands (sometimes millions) of applications</li>
+          <li>Need to store data efficiently</li>
+          <li>Are often built on older infrastructure</li>
+        </ul>
+        <p className="mt-4">Smaller file sizes reduce storage usage, improve upload speed, and keep systems stable.</p>
+        <p>So the restriction isn’t random. But that doesn’t make it easier for users.</p>
+
+        <hr className="my-10 border-slate-200" />
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Why Your PDF File Is So Large</h2>
+        <p>Before compressing, it helps to understand why your file size is high.</p>
+        <p>Common reasons include:</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">1. High-Resolution Images</h3>
+        <p>If your PDF contains scanned documents, photos, or signatures, they often increase file size significantly.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">2. Multiple Pages</h3>
+        <p>More pages = more data. Even simple documents can become large when combined.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">3. Unoptimized Export Settings</h3>
+        <p>If you created your PDF from Word, Canva, or design tools, default export settings may not be optimized.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">4. Embedded Fonts & Graphics</h3>
+        <p>Some PDFs include extra data like fonts, layers, and hidden elements. All of these add weight.</p>
+
+        <hr className="my-10 border-slate-200" />
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">The Real Challenge: Size vs Quality</h2>
+        <p>Here’s the problem most people face:</p>
+        <ul className="pl-6 space-y-2 font-bold text-slate-900 mt-4">
+          <li>👉 You reduce size → quality drops</li>
+          <li>👉 You keep quality → size stays large</li>
+        </ul>
+        <p className="mt-4">So the goal is not just compression. It’s:</p>
+        <div className="bg-[#E0F2FE] border-l-4 border-[#00B4D8] p-4 text-slate-800 font-medium my-6">
+          👉 <strong>Smart compression</strong><br/>
+          <span className="font-normal text-slate-700">Reducing file size <strong>without making the document unreadable</strong>.</span>
+        </div>
+
+        <hr className="my-10 border-slate-200" />
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">What Happens When You Compress a PDF?</h2>
+        <p>When you compress a PDF:</p>
+        <ul className="list-disc pl-6 space-y-2">
+          <li>Images are reduced in resolution</li>
+          <li>Unnecessary data is removed</li>
+          <li>File structure is optimized</li>
+        </ul>
+        <p className="mt-4">A good compression keeps text readable, maintains clarity, and reduces size effectively.</p>
+        <p>A bad compression blurs text, distorts images, and makes documents unusable.</p>
+
+        <hr className="my-10 border-slate-200" />
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Step-by-Step: How to Compress PDF to 200KB</h2>
+        <p>Let’s go through a practical method that actually works.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">Step 1: Start With a Clean File</h3>
+        <p>Before compressing, remove unnecessary pages, crop extra margins, and keep only what’s required. Smaller input = better output.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">Step 2: Check Current File Size</h3>
+        <p>Know your starting point. (e.g., 1 MB needs heavy compression, 400 KB needs moderate compression). This helps set expectations.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">Step 3: Use a Reliable Compression Tool</h3>
+        <p>Choose a tool that allows control over compression level, maintains readability, and doesn’t over-compress blindly.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">Step 4: Apply Gradual Compression</h3>
+        <p>Instead of compressing once aggressively, do a first pass to reduce size moderately, then a second pass to fine-tune. This gives better results.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">Step 5: Check Quality</h3>
+        <p>Always open the file and check text clarity, image visibility, and overall readability.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">Step 6: Repeat If Needed</h3>
+        <p>If the file is still above 200KB, adjust settings and try slightly stronger compression.</p>
+
+        <hr className="my-10 border-slate-200" />
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Cloud Tools vs Browser-Based Tools</h2>
+        <p>This is something most users don’t think about—but it matters.</p>
+
+        <h2 className="text-xl font-bold text-slate-900 mt-6 mb-4">PDF Compression Methods Compared</h2>
+        <div className="overflow-x-auto my-8">
+          <table className="min-w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-100">
+                <th className="border-b border-slate-300 p-4 font-bold text-slate-900">Feature</th>
+                <th className="border-b border-slate-300 p-4 font-bold text-slate-900">Cloud-Based Tools</th>
+                <th className="border-b border-slate-300 p-4 font-bold text-slate-900 text-[#00B4D8]">Browser-Based Tools (AuraFile)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              <tr>
+                <td className="p-4 font-medium text-slate-900">File Upload</td>
+                <td className="p-4 text-slate-700">Required</td>
+                <td className="p-4 text-slate-700 font-medium">Not required</td>
+              </tr>
+              <tr className="bg-slate-50">
+                <td className="p-4 font-medium text-slate-900">Processing</td>
+                <td className="p-4 text-slate-700">External server</td>
+                <td className="p-4 text-slate-700 font-medium">Your device</td>
+              </tr>
+              <tr>
+                <td className="p-4 font-medium text-slate-900">Speed</td>
+                <td className="p-4 text-slate-700">Depends on internet</td>
+                <td className="p-4 text-slate-700 font-medium">Instant</td>
+              </tr>
+              <tr className="bg-slate-50">
+                <td className="p-4 font-medium text-slate-900">Privacy</td>
+                <td className="p-4 text-slate-700">Files leave your device</td>
+                <td className="p-4 text-slate-700 font-medium">Files stay local</td>
+              </tr>
+              <tr>
+                <td className="p-4 font-medium text-slate-900">Storage Risk</td>
+                <td className="p-4 text-slate-700">Possible</td>
+                <td className="p-4 text-slate-700 font-medium">None</td>
+              </tr>
+              <tr className="bg-slate-50">
+                <td className="p-4 font-medium text-slate-900">Control</td>
+                <td className="p-4 text-slate-700">Limited</td>
+                <td className="p-4 text-slate-700 font-medium">Full</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Why Uploading Documents Can Be Risky</h2>
+        <p>Think about the type of PDFs you upload for applications:</p>
+        <ul className="list-disc pl-6 space-y-2">
+          <li>Resume</li>
+          <li>Aadhaar copy</li>
+          <li>Certificates</li>
+          <li>Bank details</li>
+        </ul>
+        <p className="mt-4">These are sensitive documents. Uploading them to unknown servers means you don’t control storage, you rely on platform policies, and there’s always some risk.</p>
+        <div className="bg-[#E0F2FE] border-l-4 border-[#00B4D8] p-4 text-slate-800 font-medium my-6">
+          👉 With browser-based tools, your file never leaves your device.
+        </div>
+
+        <hr className="my-10 border-slate-200" />
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Tips to Successfully Reach 200KB</h2>
+        <p>Getting exactly 200KB can be tricky. Here are practical tips that actually work:</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">1. Convert Images Before PDF</h3>
+        <p>If your PDF contains images, compress the images first, then create the PDF.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">2. Use Black & White for Scans</h3>
+        <p>Color scans increase size drastically. Use grayscale or black & white instead.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">3. Reduce Resolution</h3>
+        <p>300 DPI is too high for uploads. Use 100–150 DPI instead.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">4. Avoid Multiple Scans</h3>
+        <p>Scanning the same page multiple times increases size.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-6 mb-2">5. Split and Rebuild</h3>
+        <p>If needed, split the PDF, compress parts individually, and merge them again.</p>
+
+        <hr className="my-10 border-slate-200" />
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Common Mistakes That Increase File Size</h2>
+        <ul className="list-disc pl-6 space-y-2">
+          <li><span className="text-red-600 font-bold">❌</span> Using High-Quality Export by Default (not needed for job portals)</li>
+          <li><span className="text-red-600 font-bold">❌</span> Scanning in Color Unnecessarily</li>
+          <li><span className="text-red-600 font-bold">❌</span> Repeated Compression (can reduce quality too much)</li>
+          <li><span className="text-red-600 font-bold">❌</span> Using Random Tools (some over-compress blindly)</li>
+        </ul>
+
+        <hr className="my-10 border-slate-200" />
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">What If You Still Can’t Reach 200KB?</h2>
+        <p>Sometimes, it’s genuinely difficult. In such cases:</p>
+        <ul className="list-disc pl-6 space-y-2">
+          <li>Reduce image size further</li>
+          <li>Remove unnecessary elements</li>
+          <li>Recreate the PDF with optimized settings</li>
+        </ul>
+        <p className="mt-4 font-bold text-slate-900">And remember: Not all documents need to look perfect—they need to be readable.</p>
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">A Better Way to Handle It</h2>
+        <p>With tools like AuraFile, you can compress PDFs instantly without any upload required. You have full control over your file, making the process faster, safer, and more reliable.</p>
+
+        <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Final Thoughts</h2>
+        <p>The 200KB limit is frustrating. But it’s also manageable—once you understand how compression works. Instead of trying random tools and hoping for the best, follow a structured approach, use the right methods, and focus on readability.</p>
+        <p className="font-bold text-slate-900 text-xl mt-4">Because at the end of the day: Your document doesn’t need to be perfect—it needs to be accepted.</p>
+
+        <hr className="my-10 border-slate-200" />
+
+        <div className="bg-slate-50 p-8 rounded-2xl border border-slate-200 text-center mb-10 shadow-sm">
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">Try It Yourself</h2>
+          <p className="text-slate-600 mb-6 max-w-xl mx-auto">Compress your PDF instantly to meet strict size limits without uploading it anywhere. Fast, simple, and private.</p>
+          <Link href="/compress-pdf" className="inline-flex items-center justify-center rounded-lg bg-[#00B4D8] px-8 py-4 text-base font-bold text-white shadow-sm hover:bg-[#0096b7] transition-all">
+            Compress PDF Now <span className="ml-2">→</span>
+          </Link>
+        </div>
+
+        <hr className="my-12 border-slate-200" />
+
+        <div className="bg-slate-50 rounded-2xl p-8 border border-slate-200 shadow-sm mt-12 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-[#00B4D8] to-blue-500"></div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">About the Authors</h2>
+          
+          <div className="grid gap-8 md:grid-cols-2">
+            <div className="border border-slate-200 bg-white p-5 rounded-xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-12 w-12 rounded-full bg-slate-200 flex items-center justify-center text-xl font-bold text-slate-500">
+                  D
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-lg">Dhivya</h3>
+                  <p className="text-sm text-slate-500 font-medium">Content Contributor</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">
+                Dhivya is a content creator who writes about technology, productivity, and practical digital solutions. She focuses on solving real-world problems with simple and effective approaches.
+              </p>
+            </div>
+
+            <div className="border border-slate-200 bg-white p-5 rounded-xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-12 w-12 rounded-full bg-slate-200 flex items-center justify-center text-xl font-bold text-slate-500">
+                  M
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-lg">Madhumitha</h3>
+                  <p className="text-sm text-[#00B4D8] font-medium">Founder, AuraFile</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">
+                Madhumitha is the founder of AuraFile and a web developer building privacy-first tools where files are processed directly in your browser.
+              </p>
+              <div className="flex items-center gap-3 mt-4">
+                <a href="https://www.linkedin.com/in/aura-file-4913483b8" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-[#0077b5] hover:text-white transition-all">
+                  <Icon name="Linkedin" size={15} />
+                </a>
+                <a href="https://www.facebook.com/profile.php?id=61577547112396" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-[#1877F2] hover:text-white transition-all">
+                  <Icon name="facebook" size={15} />
+                </a>
+                <a href="mailto:team@aurafile.net" aria-label="Email" className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-700 hover:text-white transition-all">
+                  <Icon name="mail" size={15} />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
     slug: "how-to-merge-multiple-pdfs-fast",
     title: "How to Merge Multiple PDFs into One Document in Seconds",
     excerpt: "Learn how to quickly merge multiple PDF files into a single document without losing quality or compromising your data privacy.",

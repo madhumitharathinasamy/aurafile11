@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { UnlockPdfToolLoader } from "./UnlockPdfToolLoader";
 import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
 
@@ -6,8 +6,8 @@ export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
-    title: "Unlock PDF – Remove Password Securely | Aura File",
-    description: "Remove password protection from your PDF files securely in your browser. Fast, free, and totally offline.",
+    title: "Unlock PDF - Remove Password, No Upload | AuraFile",
+    description: "Remove password protection from PDFs directly in your browser. No uploads, no server access. Fast, private, and free PDF unlocker.",
     alternates: {
         canonical: "https://aurafile.net/unlock-pdf",
     },
@@ -16,36 +16,36 @@ export const metadata: Metadata = {
 export default function UnlockPdfPage() {
     const steps: Step[] = [
         {
-            title: "Upload PDF",
-            description: "Drag & drop the protected PDF file you want to unlock.",
+            title: "Unlock PDF - Remove Password, No Upload | AuraFile",
+            description: "Remove password protection from PDFs directly in your browser. No uploads, no server access. Fast, private, and free PDF unlocker.",
             icon: "upload-cloud"
         },
         {
-            title: "Enter Password",
-            description: "Enter the current document password to decrypt the file.",
+            title: "Unlock PDF - Remove Password, No Upload | AuraFile",
+            description: "Remove password protection from PDFs directly in your browser. No uploads, no server access. Fast, private, and free PDF unlocker.",
             icon: "key"
         },
         {
-            title: "Unlock & Download",
-            description: "Instantly remove the protection and download your unlocked PDF.",
+            title: "Unlock PDF - Remove Password, No Upload | AuraFile",
+            description: "Remove password protection from PDFs directly in your browser. No uploads, no server access. Fast, private, and free PDF unlocker.",
             icon: "unlock"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "Instant Unlocking",
-            description: "Remove restrictive passwords from your PDFs in seconds.",
+            title: "Unlock PDF - Remove Password, No Upload | AuraFile",
+            description: "Remove password protection from PDFs directly in your browser. No uploads, no server access. Fast, private, and free PDF unlocker.",
             icon: "zap"
         },
         {
-            title: "100% Private",
-            description: "Decryption happens in your browser. Your file and password never touch our servers.",
+            title: "Unlock PDF - Remove Password, No Upload | AuraFile",
+            description: "Remove password protection from PDFs directly in your browser. No uploads, no server access. Fast, private, and free PDF unlocker.",
             icon: "shield-check"
         },
         {
-            title: "Maintain Quality",
-            description: "Unlocking your PDF simply removes the encryption; the contents and formatting remain untouched.",
+            title: "Unlock PDF - Remove Password, No Upload | AuraFile",
+            description: "Remove password protection from PDFs directly in your browser. No uploads, no server access. Fast, private, and free PDF unlocker.",
             icon: "file-text"
         }
     ];

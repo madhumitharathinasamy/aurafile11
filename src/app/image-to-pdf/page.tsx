@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { ImageToPdfToolLoader } from "./ImageToPdfToolLoader";
 import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
 
@@ -6,8 +6,8 @@ export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
-    title: "Image to PDF – JPG PNG to PDF | Aura File",
-    description: "Convert JPG, PNG, and WebP images to PDF document online. Free, secure, and fast.",
+    title: "Image to PDF - No Upload, 100% Private | AuraFile",
+    description: "Convert JPG, PNG, and WebP images to PDF in seconds. Entirely browser-based, no uploads, no accounts. Free image to PDF converter.",
     alternates: {
         canonical: "https://aurafile.net/image-to-pdf",
     },
@@ -16,36 +16,36 @@ export const metadata: Metadata = {
 export default function ImageToPdfPage() {
     const steps: Step[] = [
         {
-            title: "Upload Images",
-            description: "Select JPG, PNG, or WebP images you want to combine into a PDF.",
+            title: "Image to PDF - No Upload, 100% Private | AuraFile",
+            description: "Convert JPG, PNG, and WebP images to PDF in seconds. Entirely browser-based, no uploads, no accounts. Free image to PDF converter.",
             icon: "image"
         },
         {
-            title: "Reorder",
-            description: "Drag and drop thumbnails to arrange your pages in the perfect order.",
+            title: "Image to PDF - No Upload, 100% Private | AuraFile",
+            description: "Convert JPG, PNG, and WebP images to PDF in seconds. Entirely browser-based, no uploads, no accounts. Free image to PDF converter.",
             icon: "move"
         },
         {
-            title: "Convert",
-            description: "Click 'Convert to PDF' and download your new document instantly.",
+            title: "Image to PDF - No Upload, 100% Private | AuraFile",
+            description: "Convert JPG, PNG, and WebP images to PDF in seconds. Entirely browser-based, no uploads, no accounts. Free image to PDF converter.",
             icon: "file-text"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "Combine Photos",
-            description: "Merge multiple receipts, photos, or screenshots into a single shareable PDF file.",
+            title: "Image to PDF - No Upload, 100% Private | AuraFile",
+            description: "Convert JPG, PNG, and WebP images to PDF in seconds. Entirely browser-based, no uploads, no accounts. Free image to PDF converter.",
             icon: "layers"
         },
         {
-            title: "Universal Format",
-            description: "PDFs work on every device. Ensure your images are viewed exactly as intended.",
+            title: "Image to PDF - No Upload, 100% Private | AuraFile",
+            description: "Convert JPG, PNG, and WebP images to PDF in seconds. Entirely browser-based, no uploads, no accounts. Free image to PDF converter.",
             icon: "globe"
         },
         {
-            title: "Secure Processing",
-            description: "Your photos are processed locally and never uploaded to any server.",
+            title: "Image to PDF - No Upload, 100% Private | AuraFile",
+            description: "Convert JPG, PNG, and WebP images to PDF in seconds. Entirely browser-based, no uploads, no accounts. Free image to PDF converter.",
             icon: "lock"
         }
     ];
