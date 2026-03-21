@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import ToolPageLayout from "@/components/tools/ToolPageLayout";
 import RenameTool from "@/components/tools/RenameTool";
 
+export const dynamic = 'force-static';
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
   title: "Bulk Rename Files Online - Free & Private | AuraFile",
   description: "Securely rename multiple files at once. Add prefixes, numbers, or replace text instantly in your browser without uploading to any server.",

@@ -2,6 +2,9 @@ import { blogPosts } from "@/data/blog";
 import Link from "next/link";
 import { Metadata } from "next";
 
+export const dynamic = 'force-static';
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
   title: "Blog | AuraFile - Privacy-First File Tools",
   description: "Read our latest articles on file processing, data privacy, and optimizing your web workflow.",

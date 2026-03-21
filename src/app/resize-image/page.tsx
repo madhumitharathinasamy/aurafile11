@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import { ResizeToolLoader } from "./ResizeToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+
+export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {

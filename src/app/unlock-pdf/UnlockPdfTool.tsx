@@ -69,14 +69,8 @@ export default function UnlockPdfTool() {
     };
 
     const downloadFile = () => {
-        console.log("Triggering downloadFile...");
-        console.log("activeFile:", activeFile);
-        console.log("activeFile.settings:", activeFile?.settings);
-        console.log("activeFile.settings.unlockedBlob:", activeFile?.settings?.unlockedBlob);
-
         if (!activeFile?.settings?.unlockedBlob) {
             toast.error("Download failed: No decrypted file found in memory.");
-            console.error("Missing unlockedBlob in settings object!");
             return;
         }
 
@@ -88,44 +82,26 @@ export default function UnlockPdfTool() {
                 : activeFile.file.name;
 
             const finalName = `unlocked_${baseName}.pdf`;
-            console.log("Target filename:", finalName);
 
             // Generate an ephemeral URL directly from the raw blob
             const url = URL.createObjectURL(activeFile.settings.unlockedBlob);
-            console.log("Generated Object URL:", url);
 
-            // Native anchor trigger 
+            // Native anchor trigger
             const a = document.createElement("a");
             a.style.display = "none";
             a.href = url;
             a.download = finalName;
 
-            console.log("Appending anchor to DOM and clicking...");
             document.body.appendChild(a);
-
-            // Execute click
             a.click();
-            console.log("Click executed.");
-
-            // Secondary ultimate fallback: Just open the blob if click failed silently
-            // Note: Most modern browsers block window.open in this context without explicit user trust, but it's a diagnostic fallback
-            try {
-                window.open(url, "_blank");
-                console.log("Secondary window fallback triggered.");
-            } catch (e) {
-                console.error("Window fallback failed:", e);
-            }
 
             // Clean up immediately
             setTimeout(() => {
-                console.log("Running cleanup timer...");
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                console.log("Cleanup finished.");
             }, 300);
 
         } catch (error) {
-            console.error("Download error catch block triggered:", error);
             toast.error("Failed to download unlocked PDF.");
         }
     };
