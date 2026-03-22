@@ -25,7 +25,7 @@ export default function DisclaimerPage() {
 
                     <h2>2. File Processing Liability</h2>
                     <p>
-                        AuraFile is designed to operate strictly on the client-side, executing logic via your browser's WebAssembly API. Because we do not upload or store your data on cloud servers:
+                        AuraFile is designed to operate strictly on the client-side, executing logic via your browser&apos;s WebAssembly API. Because we do not upload or store your data on cloud servers:
                     </p>
                     <ul>
                         <li>We cannot act as a data backup service or a recovery tool.</li>
@@ -46,7 +46,7 @@ export default function DisclaimerPage() {
 
                     <h2>4. Professional Legal/Medical Disclaimer</h2>
                     <p>
-                        The tools provided on AuraFile cannot and do not contain legal or medical advice. The utilities (such as our PDF encryptor or PDF merger) are intended strictly to assist users with file structuring and transport. Utilizing our password-protection features does not inherently guarantee compliance with complex industry regulations like HIPAA, GDPR, or Attorney-Client privilege criteria unless holistically implemented alongside your organization's broader, certified IT workflows.
+                        The tools provided on AuraFile cannot and do not contain legal or medical advice. The utilities (such as our PDF encryptor or PDF merger) are intended strictly to assist users with file structuring and transport. Utilizing our password-protection features does not inherently guarantee compliance with complex industry regulations like HIPAA, GDPR, or Attorney-Client privilege criteria unless holistically implemented alongside your organization&apos;s broader, certified IT workflows.
                     </p>
 
                     <h2>5. Affiliates Disclaimer</h2>

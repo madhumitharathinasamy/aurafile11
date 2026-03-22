@@ -25,10 +25,10 @@ export default function TermsOfServicePage() {
 
                     <h2>2. Description of Service</h2>
                     <p>
-                        AuraFile provides a suite of entirely client-side, browser-based tools for manipulating, compressing, converting, and analyzing Image and PDF files. The service is provided "AS IS" and is completely free of charge. Because processing occurs heavily on the user's local device, the performance of the service is dependent upon the user's hardware specifications (CPU, RAM).
+                        AuraFile provides a suite of entirely client-side, browser-based tools for manipulating, compressing, converting, and analyzing Image and PDF files. The service is provided &quot;AS IS&quot; and is completely free of charge. Because processing occurs heavily on the user&apos;s local device, the performance of the service is dependent upon the user&apos;s hardware specifications (CPU, RAM).
                     </p>
 
-                    <h2>3. User Responsibilities & Lawful Use</h2>
+                    <h2>3. User Responsibilities &amp; Lawful Use</h2>
                     <p>You agree to use AuraFile only for lawful purposes. You are strictly prohibited from using our tools to:</p>
                     <ul>
                         <li>Remove passwords, digital rights management (DRM), or copyright protections from files you do not legally own or have explicit permission to modify.</li>
@@ -51,7 +51,7 @@ export default function TermsOfServicePage() {
 
                     <h2>6. Disclaimer of Warranties</h2>
                     <p>
-                        YOUR USE OF THE SERVICE IS AT YOUR SOLE RISK. THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS. AURAFILE EXPRESSLY DISCLAIMS ALL WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+                        YOUR USE OF THE SERVICE IS AT YOUR SOLE RISK. THE SERVICE IS PROVIDED ON AN &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; BASIS. AURAFILE EXPRESSLY DISCLAIMS ALL WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
                     </p>
                     <p>
                         We do not guarantee that the service will be entirely free of bugs, errors, or temporary rendering glitches, particularly on outdated or unsupported mobile browsers.

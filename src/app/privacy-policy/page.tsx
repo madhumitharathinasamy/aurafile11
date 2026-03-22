@@ -18,12 +18,12 @@ export default function PrivacyPolicyPage() {
                 </div>
 
                 <article className="prose prose-slate max-w-none prose-headings:text-slate-900 prose-a:text-[#00B4D8]">
-                    <h2>1. Core Architecture & Philosophy</h2>
+                    <h2>1. Core Architecture &amp; Philosophy</h2>
                     <p>
-                        At AuraFile (aurafile.net), we believe privacy is a fundamental human right. Unlike traditional web-based file manipulation tools that require you to upload your documents to a cloud server, our entire platform operates on a <strong>client-side architecture</strong>. 
+                        At AuraFile (aurafile.net), we believe privacy is a fundamental human right. Unlike traditional web-based file manipulation tools that require you to upload your documents to a cloud server, our entire platform operates on a <strong>client-side architecture</strong>.
                     </p>
                     <p>
-                        This means that when you use our Image Compressors, PDF Mergers, or AI Background Removers, the required software logic is downloaded directly into your web browser. The actual processing of your files occurs securely in your device's active memory (RAM). <strong>We never upload, transmit, view, or store your actual files on our servers.</strong>
+                        This means that when you use our Image Compressors, PDF Mergers, or AI Background Removers, the required software logic is downloaded directly into your web browser. The actual processing of your files occurs securely in your device&apos;s active memory (RAM). <strong>We never upload, transmit, view, or store your actual files on our servers.</strong>
                     </p>
 
                     <h2>2. Information We Do Not Collect</h2>
@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
                         <li>Passwords used to lock or unlock your PDF files.</li>
                     </ul>
 
-                    <h2>3. Information We Collect (Analytics & Advertising)</h2>
+                    <h2>3. Information We Collect (Analytics &amp; Advertising)</h2>
                     <p>
                         To operate, maintain, and monetize our free platform, we rely on standard third-party web analytics and advertising networks. These networks automatically collect certain non-personally identifiable information:
                     </p>
@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
 
                     <h2>4. Cookies and Web Beacons</h2>
                     <p>
-                        A "cookie" is a small text file stored on your browser. We use cookies primarily for tracking user consent (such as acknowledging our cookie banner) and for third-party advertising networks. You have the ability to accept or decline cookies through your browser settings. However, opting out of cookies may affect the personalization of the advertisements you see.
+                        A &quot;cookie&quot; is a small text file stored on your browser. We use cookies primarily for tracking user consent (such as acknowledging our cookie banner) and for third-party advertising networks. You have the ability to accept or decline cookies through your browser settings. However, opting out of cookies may affect the personalization of the advertisements you see.
                     </p>
 
                     <h2>5. Third-Party Links</h2>
@@ -53,9 +53,9 @@ export default function PrivacyPolicyPage() {
                         Our website or blog articles may contain links to external third-party websites. Please note that we do not govern the privacy protocols of these external domains. We encourage you to review the Privacy Policies of any website you visit when leaving AuraFile.
                     </p>
 
-                    <h2>6. Children's Privacy</h2>
+                    <h2>6. Children&apos;s Privacy</h2>
                     <p>
-                        AuraFile's tools are designed for general audiences and professionals. We do not knowingly target or collect personal information from children under the age of 13. If you believe your child has provided us with personal contact information, please reach out to us so we can delete their data from our analytics records.
+                        AuraFile&apos;s tools are designed for general audiences and professionals. We do not knowingly target or collect personal information from children under the age of 13. If you believe your child has provided us with personal contact information, please reach out to us so we can delete their data from our analytics records.
                     </p>
 
                     <h2>7. Changes to This Privacy Policy</h2>

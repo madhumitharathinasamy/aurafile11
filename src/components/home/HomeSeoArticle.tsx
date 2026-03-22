@@ -26,7 +26,7 @@ export function HomeSeoArticle() {
                         <li>The processed file is stored temporarily on their hard drives until you download it.</li>
                     </ul>
                     <p>
-                        Even if a provider promises to "delete your files after 1 hour," you are legally surrendering custody of your data. This creates massive liabilities for professionals bound by strict compliance frameworks like HIPAA, GDPR, or Attorney-Client privilege. A single server breach on the provider's end instantaneously compromises every user's uploaded documents.
+                        Even if a provider promises to &quot;delete your files after 1 hour,&quot; you are legally surrendering custody of your data. This creates massive liabilities for professionals bound by strict compliance frameworks like HIPAA, GDPR, or Attorney-Client privilege. A single server breach on the provider&apos;s end instantaneously compromises every user&apos;s uploaded documents.
                     </p>
 
                     <h3>Our Solution: Cutting-Edge WebAssembly (WASM)</h3>
@@ -34,7 +34,7 @@ export function HomeSeoArticle() {
                         AuraFile completely bypasses the cloud. Instead of sending your files to our servers, we send our software logic directly to your browser. By leveraging modern WebAssembly (WASM) engine ports and the HTML5 File API, we temporarily turn your personal computer or smartphone into a powerhouse document editor.
                     </p>
                     <p>
-                        When you select a file using any of our tools, your web browser parses the data entirely in localized RAM (Active Memory). The mathematical operations—whether it's extracting text for our <Link href="/pdf-to-word">PDF to Word Converter</Link>, executing neural network logic for our <Link href="/remove-background">AI Background Remover</Link>, or restructuring bytes for our <Link href="/merge-pdf">PDF Merger</Link>—happen instantly utilizing your own CPU.
+                        When you select a file using any of our tools, your web browser parses the data entirely in localized RAM (Active Memory). The mathematical operations&mdash;whether it&apos;s extracting text for our <Link href="/pdf-to-word">PDF to Word Converter</Link>, executing neural network logic for our <Link href="/remove-background">AI Background Remover</Link>, or restructuring bytes for our <Link href="/merge-pdf">PDF Merger</Link>&mdash;happen instantly utilizing your own CPU.
                     </p>
                     <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 my-8 flex gap-4 items-start">
                         <Icon name="shield-check" size={24} className="text-[#00B4D8] shrink-0 mt-1" />
@@ -52,7 +52,7 @@ export function HomeSeoArticle() {
                         Have you ever tried to upload a massive 200MB 4K image to a cloud compressor on a weak internet connection? The upload alone can take several minutes, followed by a server queue, processing time, and another lengthy download. 
                     </p>
                     <p>
-                        Because AuraFile doesn't rely on your internet bandwidth to transfer files, the process is instantaneous. Our <Link href="/compress-image">Image Compressor</Link> executes its algorithms the millisecond you drop the file into the application. The only limiting factor is the physical speed of the processor in the device you are holding.
+                        Because AuraFile doesn&apos;t rely on your internet bandwidth to transfer files, the process is instantaneous. Our <Link href="/compress-image">Image Compressor</Link> executes its algorithms the millisecond you drop the file into the application. The only limiting factor is the physical speed of the processor in the device you are holding.
                     </p>
 
                     <h3>A Comprehensive Suite of Free Tools</h3>
@@ -70,7 +70,7 @@ export function HomeSeoArticle() {
                         Cloud processing is inherently expensive because companies must rent massive GPU and CPU server farms from providers like AWS or Google Cloud to process millions of user files. This overhead is why nearly all traditional PDF and image tools eventually throttle your usage with aggressive paywalls.
                     </p>
                     <p>
-                        Because we utilize <em>your</em> computer's processing power, our server costs are infinitesimally small. We merely serve the static website files. This efficient architecture allows us to offer premium, unlimited, zero-throttling document manipulation to the public for absolutely free. 
+                        Because we utilize <em>your</em> computer&apos;s processing power, our server costs are infinitesimally small. We merely serve the static website files. This efficient architecture allows us to offer premium, unlimited, zero-throttling document manipulation to the public for absolutely free.
                     </p>
                 </article>
             </div>
