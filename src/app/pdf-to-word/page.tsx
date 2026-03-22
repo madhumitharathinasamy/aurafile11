@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { PdfToWordToolLoader } from "./PdfToWordToolLoader";
 import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
 
@@ -73,6 +73,11 @@ export default function PdfToWordPage() {
             howItWorks={steps}
             benefits={benefits}
             faq={faq}
+            breadcrumbs={[
+                { label: "Home", href: "/" },
+                { label: "PDF Tools", href: "/pdf-tools" },
+                { label: "Convert PDF to Word", href: "/pdf-to-word" }
+            ]}
         />
     );
 }

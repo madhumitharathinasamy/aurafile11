@@ -1,4 +1,4 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 import { CompressToolLoader } from "./CompressToolLoader";
 import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
 
@@ -81,6 +81,11 @@ export default function CompressPage() {
             howItWorks={steps}
             benefits={benefits}
             faq={faq}
+            breadcrumbs={[
+                { label: "Home", href: "/" },
+                { label: "Image Tools", href: "/image-tools" },
+                { label: "Compress Image", href: "/compress-image" }
+            ]}
         />
     );
 }
