@@ -8,6 +8,7 @@ import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import { ClientToaster } from "@/components/ui/ClientToaster";
+import { CookieConsent } from "@/components/layout/CookieConsent";
 
 
 
@@ -89,6 +90,7 @@ export default function RootLayout({
         <Footer />
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
         <ClientToaster />
+        <CookieConsent />
         <SpeedInsights />
         <Analytics />
       </body>

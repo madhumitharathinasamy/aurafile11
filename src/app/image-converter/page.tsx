@@ -1,11 +1,13 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 import { ConvertToolLoader } from "./ConvertToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+
+export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
-    title: "Convert Image Online - JPG PNG WebP AVIF | AuraFile",
-    description: "Convert images online to JPG, PNG, WebP, AVIF, TIFF, or GIF. Fast, secure, and private browser-based conversion with AuraFile.",
+    title: "Convert Images Free - JPG PNG WebP HEIC | AuraFile",
+    description: "Convert images to JPG, PNG, WebP, AVIF and more in your browser. No file uploads. Supports HEIC from iPhone. Free, private, and instant.",
     alternates: {
         canonical: "https://aurafile.net/image-converter",
     },
@@ -14,36 +16,36 @@ export const metadata: Metadata = {
 export default function ConvertPage() {
     const steps: Step[] = [
         {
-            title: "Upload Files",
-            description: "Drag & drop your images (JPG, PNG, HEIC, WebP) into the converter.",
+            title: "Convert Images Free - JPG PNG WebP HEIC | AuraFile",
+            description: "Convert images to JPG, PNG, WebP, AVIF and more in your browser. No file uploads. Supports HEIC from iPhone. Free, private, and instant.",
             icon: "upload-cloud"
         },
         {
-            title: "Select Format",
-            description: "Choose your desired output format (JPG, PNG, WebP, AVIF, etc.).",
+            title: "Convert Images Free - JPG PNG WebP HEIC | AuraFile",
+            description: "Convert images to JPG, PNG, WebP, AVIF and more in your browser. No file uploads. Supports HEIC from iPhone. Free, private, and instant.",
             icon: "settings"
         },
         {
-            title: "Convert & Download",
-            description: "Click convert and download your new images instantly.",
+            title: "Convert Images Free - JPG PNG WebP HEIC | AuraFile",
+            description: "Convert images to JPG, PNG, WebP, AVIF and more in your browser. No file uploads. Supports HEIC from iPhone. Free, private, and instant.",
             icon: "download"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "100% Secure & Private",
-            description: "All conversions happen directly in your browser. Your images never leave your device.",
+            title: "Convert Images Free - JPG PNG WebP HEIC | AuraFile",
+            description: "Convert images to JPG, PNG, WebP, AVIF and more in your browser. No file uploads. Supports HEIC from iPhone. Free, private, and instant.",
             icon: "shield-check"
         },
         {
-            title: "Blazing Fast",
-            description: "Powered by WebAssembly and advanced browser APIs for instant batch processing.",
+            title: "Convert Images Free - JPG PNG WebP HEIC | AuraFile",
+            description: "Convert images to JPG, PNG, WebP, AVIF and more in your browser. No file uploads. Supports HEIC from iPhone. Free, private, and instant.",
             icon: "zap"
         },
         {
-            title: "Premium Quality",
-            description: "Smart compression and detailed format control ensure the best visual results.",
+            title: "Convert Images Free - JPG PNG WebP HEIC | AuraFile",
+            description: "Convert images to JPG, PNG, WebP, AVIF and more in your browser. No file uploads. Supports HEIC from iPhone. Free, private, and instant.",
             icon: "star"
         }
     ];

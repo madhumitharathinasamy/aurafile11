@@ -3,6 +3,9 @@ import Link from "next/link";
 import { MoveRight } from "lucide-react";
 import { Metadata } from "next";
 
+export const dynamic = 'force-static';
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
     title: "Sitemap | Aura File",
     description: "Navigate all image and PDF tools available on Aura File.",

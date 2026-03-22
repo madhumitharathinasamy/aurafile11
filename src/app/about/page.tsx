@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 
+export const dynamic = 'force-static';
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
     title: "About Us | AuraFile — Privacy-First Browser-Based File Tools",
     description:

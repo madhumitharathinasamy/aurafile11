@@ -1,11 +1,13 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 import { ResizeToolLoader } from "./ResizeToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+
+export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
-    title: "Image Resizer for Social Media – Resize Online Free | AuraFile",
-    description: "Resize images by pixels, percentage, or social presets. 100% browser-based. No uploads required.",
+    title: "Resize Image Free - No Upload, 100% Private | AuraFile",
+    description: "Resize images by pixel or percentage directly in your browser. No server uploads, no data stored. Free, private image resizer.",
     alternates: {
         canonical: "https://aurafile.net/resize-image",
     },
@@ -14,36 +16,36 @@ export const metadata: Metadata = {
 export default function ResizePage() {
     const steps: Step[] = [
         {
-            title: "Upload Images",
-            description: "Drag & drop JPG, PNG, or WEBP files directly into the browser.",
+            title: "Resize Image Free - No Upload, 100% Private | AuraFile",
+            description: "Resize images by pixel or percentage directly in your browser. No server uploads, no data stored. Free, private image resizer.",
             icon: "upload-cloud"
         },
         {
-            title: "Choose Dimensions",
-            description: "Set custom width/height in pixels or select a social media preset.",
+            title: "Resize Image Free - No Upload, 100% Private | AuraFile",
+            description: "Resize images by pixel or percentage directly in your browser. No server uploads, no data stored. Free, private image resizer.",
             icon: "settings"
         },
         {
-            title: "Download",
-            description: "Instantly download your resized images. No server uploads needed.",
+            title: "Resize Image Free - No Upload, 100% Private | AuraFile",
+            description: "Resize images by pixel or percentage directly in your browser. No server uploads, no data stored. Free, private image resizer.",
             icon: "download"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "100% Private",
-            description: "Your images are processed securely in your browser and never sent to our servers.",
+            title: "Resize Image Free - No Upload, 100% Private | AuraFile",
+            description: "Resize images by pixel or percentage directly in your browser. No server uploads, no data stored. Free, private image resizer.",
             icon: "shield-check"
         },
         {
-            title: "Lightning Fast",
-            description: "Powered by high-performance browser engines, resizing takes milliseconds.",
+            title: "Resize Image Free - No Upload, 100% Private | AuraFile",
+            description: "Resize images by pixel or percentage directly in your browser. No server uploads, no data stored. Free, private image resizer.",
             icon: "zap"
         },
         {
-            title: "Precision Control",
-            description: "Set exact pixel dimensions or scale by percentage without losing quality.",
+            title: "Resize Image Free - No Upload, 100% Private | AuraFile",
+            description: "Resize images by pixel or percentage directly in your browser. No server uploads, no data stored. Free, private image resizer.",
             icon: "maximize"
         }
     ];

@@ -1,6 +1,8 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import { RemoveBgToolLoader } from './RemoveBgToolLoader';
-import ToolPageLayout, { Step, Benefit, FAQItem } from '@/components/tools/ToolPageLayout';export const dynamic = 'force-static';
+import ToolPageLayout, { Step, Benefit, FAQItem } from '@/components/tools/ToolPageLayout';
+
+export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
@@ -14,36 +16,36 @@ export const metadata: Metadata = {
 export default function RemoveBackgroundPage() {
     const steps: Step[] = [
         {
-            title: "Upload Your Image",
-            description: "Drag & drop or select any JPG, PNG, or WebP image. Your file never leaves your device.",
+            title: "Remove Background Free - No Upload | AuraFile",
+            description: "Remove image backgrounds instantly with AI, entirely in your browser. No uploads, no cloud processing. 100% private background remover.",
             icon: "upload-cloud"
         },
         {
-            title: "AI Removes Background",
-            description: "Our on-device AI model detects subjects and precisely cuts out the background in seconds.",
+            title: "Remove Background Free - No Upload | AuraFile",
+            description: "Remove image backgrounds instantly with AI, entirely in your browser. No uploads, no cloud processing. 100% private background remover.",
             icon: "wand-2"
         },
         {
-            title: "Download Result",
-            description: "Download your image with a transparent background or choose a custom color fill.",
+            title: "Remove Background Free - No Upload | AuraFile",
+            description: "Remove image backgrounds instantly with AI, entirely in your browser. No uploads, no cloud processing. 100% private background remover.",
             icon: "download"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "100% Private",
-            description: "The AI runs entirely in your browser. Your images are never uploaded to any server.",
+            title: "Remove Background Free - No Upload | AuraFile",
+            description: "Remove image backgrounds instantly with AI, entirely in your browser. No uploads, no cloud processing. 100% private background remover.",
             icon: "shield-check"
         },
         {
-            title: "No Sign-Up Needed",
-            description: "No account, no subscription, no credit card. Just open the page and start removing backgrounds.",
+            title: "Remove Background Free - No Upload | AuraFile",
+            description: "Remove image backgrounds instantly with AI, entirely in your browser. No uploads, no cloud processing. 100% private background remover.",
             icon: "zap"
         },
         {
-            title: "Transparent or Custom Background",
-            description: "Export as PNG with full transparency, or pick a solid color or blur effect for the background.",
+            title: "Remove Background Free - No Upload | AuraFile",
+            description: "Remove image backgrounds instantly with AI, entirely in your browser. No uploads, no cloud processing. 100% private background remover.",
             icon: "layers"
         }
     ];

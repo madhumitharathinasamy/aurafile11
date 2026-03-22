@@ -1,0 +1,124 @@
+﻿
+> aurafile@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬╖ optimizePackageImports
+  ┬╖ serverActions
+
+  Creating an optimized production build ...
+node.exe : 
+At C:\nvm4w\nodejs\npm
+.ps1:29 char:3
++   & $NODE_EXE 
+$NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (:String) [   
+ ], RemoteExceptio    
+n
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+> Build error occurred
+Error: Turbopack 
+build failed with 2 
+errors:
+./src/app/privacy/page
+.tsx:14:14
+Ecmascript file had 
+an error
+[0m [90m 12 |[39m 
+[36mimport[39m { 
+siteConfig } 
+[36mfrom[39m [32m"@
+/config/site"[39m[33
+m;[39m
+ [90m 13 |[39m
+[31m[1m>[22m[39m[
+90m 14 |[39m 
+[36mexport[39m 
+[36mconst[39m 
+dynamic [33m=[39m [
+32m'force-static'[39m
+[33m;[39m
+ [90m    |[39m      
+        [31m[1m^[22
+m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[3
+9m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31
+m[1m^[22m[39m
+ [90m 15 |[39m 
+[36mexport[39m 
+[36mconst[39m 
+revalidate 
+[33m=[39m [35m86400
+[39m[33m;[39m
+ [90m 16 |[39m
+ [90m 17 |[39m 
+[36mexport[39m 
+[36mdefault[39m 
+[36mfunction[39m [3
+3mPrivacyPage[39m() 
+{[0m
+
+the name `dynamic` is 
+defined multiple times
+
+
+./src/app/privacy/page
+.tsx:15:14
+Ecmascript file had 
+an error
+[0m [90m 13 |[39m
+ [90m 14 |[39m 
+[36mexport[39m 
+[36mconst[39m 
+dynamic [33m=[39m [
+32m'force-static'[39m
+[33m;[39m
+[31m[1m>[22m[39m[
+90m 15 |[39m 
+[36mexport[39m 
+[36mconst[39m 
+revalidate 
+[33m=[39m [35m86400
+[39m[33m;[39m
+ [90m    |[39m      
+        [31m[1m^[22
+m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[3
+9m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m
+[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^
+[22m[39m
+ [90m 16 |[39m
+ [90m 17 |[39m 
+[36mexport[39m 
+[36mdefault[39m 
+[36mfunction[39m [3
+3mPrivacyPage[39m() {
+ [90m 18 |[39m     
+[36mreturn[39m ([0m
+
+the name `revalidate` 
+is defined multiple 
+times
+
+
+    at <unknown> (./sr
+c/app/privacy/page.tsx
+:14:14)
+    at <unknown> (./sr
+c/app/privacy/page.tsx
+:15:14)

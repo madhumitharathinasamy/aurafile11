@@ -8,6 +8,8 @@ export const metadata: Metadata = {
 
 import { siteConfig } from "@/config/site";
 
+
+
 export default function PrivacyPage() {
     return (
         <>

@@ -1,11 +1,13 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { CropToolLoader } from "./CropToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+
+export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
-    title: "Crop Image Online – Fast & Secure | Aura File",
-    description: "Crop your images online for free. Adjust aspect ratios and trim edges instantly in your browser.",
+    title: "Crop Image Free - No Upload Required | AuraFile",
+    description: "Crop and trim images directly in your browser with no file uploads. Supports JPG, PNG, WebP. Free, private, instant image cropping.",
     alternates: {
         canonical: "https://aurafile.net/crop-image",
     },
@@ -14,36 +16,36 @@ export const metadata: Metadata = {
 export default function CropPage() {
     const steps: Step[] = [
         {
-            title: "Upload Image",
-            description: "Upload the JPG, PNG, or WEBP image you want to crop.",
+            title: "Crop Image Free - No Upload Required | AuraFile",
+            description: "Crop and trim images directly in your browser with no file uploads. Supports JPG, PNG, WebP. Free, private, instant image cropping.",
             icon: "upload-cloud"
         },
         {
-            title: "Adjust Selection",
-            description: "Drag the corners of the crop box or select a preset aspect ratio.",
+            title: "Crop Image Free - No Upload Required | AuraFile",
+            description: "Crop and trim images directly in your browser with no file uploads. Supports JPG, PNG, WebP. Free, private, instant image cropping.",
             icon: "crop"
         },
         {
-            title: "Download",
-            description: "Apply the crop and download your perfectly framed image.",
+            title: "Crop Image Free - No Upload Required | AuraFile",
+            description: "Crop and trim images directly in your browser with no file uploads. Supports JPG, PNG, WebP. Free, private, instant image cropping.",
             icon: "download"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "Custom Aspect Ratios",
-            description: "Easily crop to standard ratios like 16:9, 4:3, 1:1, or custom dimensions.",
+            title: "Crop Image Free - No Upload Required | AuraFile",
+            description: "Crop and trim images directly in your browser with no file uploads. Supports JPG, PNG, WebP. Free, private, instant image cropping.",
             icon: "maximize"
         },
         {
-            title: "Lossless Cropping",
-            description: "Trim your images without reducing quality or changing file format.",
+            title: "Crop Image Free - No Upload Required | AuraFile",
+            description: "Crop and trim images directly in your browser with no file uploads. Supports JPG, PNG, WebP. Free, private, instant image cropping.",
             icon: "image"
         },
         {
-            title: "Instant Preview",
-            description: "See exactly what your cropped image will look like in real-time.",
+            title: "Crop Image Free - No Upload Required | AuraFile",
+            description: "Crop and trim images directly in your browser with no file uploads. Supports JPG, PNG, WebP. Free, private, instant image cropping.",
             icon: "eye"
         }
     ];

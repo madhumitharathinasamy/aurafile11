@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/PageHeader";
 
+export const dynamic = 'force-static';
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
     title: "Contact Us | AuraFile",
     description:

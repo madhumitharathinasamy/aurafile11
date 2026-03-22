@@ -1,11 +1,13 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { ProtectPdfToolLoader } from "./ProtectPdfToolLoader";
-import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";export const dynamic = 'force-static';
+import ToolPageLayout, { Step, Benefit, FAQItem } from "@/components/tools/ToolPageLayout";
+
+export const dynamic = 'force-static';
 
 
 export const metadata: Metadata = {
-    title: "Protect PDF – Encrypt & Password | Aura File",
-    description: "Encrypt your PDF files with a secure password online. Prevent unauthorized access instantly.",
+    title: "Password Protect PDF - No Upload | AuraFile",
+    description: "Add a password to your PDF instantly in your browser. Your file never leaves your device. 100% private PDF protection. Free.",
     alternates: {
         canonical: "https://aurafile.net/protect-pdf",
     },
@@ -14,36 +16,36 @@ export const metadata: Metadata = {
 export default function ProtectPdfPage() {
     const steps: Step[] = [
         {
-            title: "Upload PDF",
-            description: "Drag & drop the PDF file you want to secure.",
+            title: "Password Protect PDF - No Upload | AuraFile",
+            description: "Add a password to your PDF instantly in your browser. Your file never leaves your device. 100% private PDF protection. Free.",
             icon: "upload-cloud"
         },
         {
-            title: "Set Password",
-            description: "Enter a strong password to encrypt your document.",
+            title: "Password Protect PDF - No Upload | AuraFile",
+            description: "Add a password to your PDF instantly in your browser. Your file never leaves your device. 100% private PDF protection. Free.",
             icon: "key"
         },
         {
-            title: "Encrypt & Download",
-            description: "Apply encryption and download your protected PDF instantly.",
+            title: "Password Protect PDF - No Upload | AuraFile",
+            description: "Add a password to your PDF instantly in your browser. Your file never leaves your device. 100% private PDF protection. Free.",
             icon: "lock"
         }
     ];
 
     const benefits: Benefit[] = [
         {
-            title: "Strong Encryption",
-            description: "Uses industry-standard AES encryption to ensure your documents remain secure.",
+            title: "Password Protect PDF - No Upload | AuraFile",
+            description: "Add a password to your PDF instantly in your browser. Your file never leaves your device. 100% private PDF protection. Free.",
             icon: "shield"
         },
         {
-            title: "Client-Side Processing",
-            description: "Encryption happens in your browser. Your file and password are never sent to our servers.",
+            title: "Password Protect PDF - No Upload | AuraFile",
+            description: "Add a password to your PDF instantly in your browser. Your file never leaves your device. 100% private PDF protection. Free.",
             icon: "eye-off"
         },
         {
-            title: "Universal Compatibility",
-            description: "Protected PDFs can be opened on any device with the correct password.",
+            title: "Password Protect PDF - No Upload | AuraFile",
+            description: "Add a password to your PDF instantly in your browser. Your file never leaves your device. 100% private PDF protection. Free.",
             icon: "globe"
         }
     ];

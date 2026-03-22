@@ -2,15 +2,9 @@ import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import dynamic from "next/dynamic";
-import { ScrollReveal } from "@/components/ScrollReveal";
+import { BelowFoldSections } from "@/components/home/BelowFoldSections";
 
-const ToolsSection = dynamic(() => import("@/components/home/ToolsSection"), { ssr: true });
-const FeaturesSection = dynamic(() => import("@/components/home/FeaturesSection"), { ssr: true });
-const BlogSection = dynamic(() => import("@/components/home/BlogSection"), { ssr: true });
-const Reviews = dynamic(() => import("@/components/ui/Reviews").then(mod => mod.Reviews), { ssr: true });
-
-export const dynamicConfig = "force-static";
+export const dynamic = "force-static";
 export const revalidate = 86400;
 
 export default function Home() {
@@ -18,15 +12,15 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col animate-fade-in">
-      {/* Hero Section */}
+      {/* ── Hero Section (SSR — renders immediately, drives FCP/LCP) ─────── */}
       <section className="relative overflow-hidden pt-20 pb-16 md:pt-32 md:pb-24 bg-[#F8FAFC]">
-        <div className="absolute left-[5%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[#E0F2FE] blur-[100px] opacity-70"></div>
-        <div className="absolute right-[5%] top-[10%] h-[400px] w-[400px] rounded-full bg-[#E0F2FE] blur-[100px] opacity-60"></div>
+        <div className="absolute left-[5%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[#E0F2FE] blur-[100px] opacity-70" />
+        <div className="absolute right-[5%] top-[10%] h-[400px] w-[400px] rounded-full bg-[#E0F2FE] blur-[100px] opacity-60" />
         <div className="container mx-auto px-4 relative z-10">
           <div className="mx-auto max-w-4xl text-center">
             {/* Trusted Badge */}
             <div className="mb-10 inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-600 shadow-sm">
-              <span className="mr-2 h-2.5 w-2.5 rounded-full bg-[#00B4D8]"></span>
+              <span className="mr-2 h-2.5 w-2.5 rounded-full bg-[#00B4D8]" />
               {hero.trustedText}
             </div>
 
@@ -48,7 +42,7 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* Hero Features */}
+            {/* Hero benefit pills */}
             <div className="flex flex-wrap justify-center gap-8 md:gap-12 text-sm font-bold text-slate-600">
               {hero.benefits.map((benefit, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -61,21 +55,8 @@ export default function Home() {
         </div>
       </section>
 
-      <ScrollReveal>
-        <ToolsSection />
-      </ScrollReveal>
-
-      <ScrollReveal>
-        <FeaturesSection />
-      </ScrollReveal>
-
-      <ScrollReveal>
-        <BlogSection />
-      </ScrollReveal>
-
-      <ScrollReveal>
-        <Reviews />
-      </ScrollReveal>
+      {/* ── Below-the-fold sections (Client — deferred via idle/scroll) ───── */}
+      <BelowFoldSections />
     </main>
   );
 }
