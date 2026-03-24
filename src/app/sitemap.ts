@@ -1,15 +1,47 @@
 import { MetadataRoute } from "next";
 import { blogPosts } from "@/data/blog";
+import fs from "fs";
+import path from "path";
 
 export default function sitemap(): MetadataRoute.Sitemap {
     const baseUrl = "https://aurafile.net";
     const lastModDate = new Date("2026-03-23");
 
+    // Dynamic Blog Map
     const blogs: MetadataRoute.Sitemap = blogPosts.map((post) => ({
         url: `${baseUrl}/blog/${post.slug}`,
         lastModified: new Date(post.date),
         changeFrequency: "monthly",
         priority: 0.8,
+    }));
+
+    // Dynamic Tools Discovery
+    const appDir = path.join(process.cwd(), "src", "app");
+    const nonToolDirs = new Set([
+        "about", "about-us", "api", "blog", "contact", 
+        "disclaimer", "document-tools", "faq", "image-tools", 
+        "pdf-tools", "privacy", "privacy-policy", "search", 
+        "security", "sitemap-html", "terms", "terms-of-service"
+    ]);
+
+    let toolSubDirs: string[] = [];
+    try {
+        const allItems = fs.readdirSync(appDir, { withFileTypes: true });
+        toolSubDirs = allItems
+            .filter((dirent) => dirent.isDirectory())
+            .filter((dirent) => !dirent.name.startsWith("_") && !dirent.name.startsWith("("))
+            .filter((dirent) => !nonToolDirs.has(dirent.name))
+            .filter((dirent) => fs.existsSync(path.join(appDir, dirent.name, "page.tsx")))
+            .map((dirent) => dirent.name);
+    } catch (error) {
+        console.error("Error reading src/app directory for sitemap generation:", error);
+    }
+
+    const dynamicTools: MetadataRoute.Sitemap = toolSubDirs.map((toolName) => ({
+        url: `${baseUrl}/${toolName}`,
+        lastModified: lastModDate,
+        changeFrequency: "monthly",
+        priority: 0.9,
     }));
 
     return [
@@ -20,20 +52,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 1.0,
         },
         ...blogs,
-        // Image Tools
-        { url: `${baseUrl}/compress-image`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        { url: `${baseUrl}/resize-image`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        { url: `${baseUrl}/image-converter`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        { url: `${baseUrl}/crop-image`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        { url: `${baseUrl}/remove-background`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        // PDF Tools
-        { url: `${baseUrl}/compress-pdf`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        { url: `${baseUrl}/merge-pdf`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        { url: `${baseUrl}/pdf-to-word`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        { url: `${baseUrl}/image-to-pdf`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        { url: `${baseUrl}/protect-pdf`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
-        // File Tools
-        { url: `${baseUrl}/rename-files`, lastModified: lastModDate, changeFrequency: "monthly", priority: 0.9 },
+        ...dynamicTools,
         // Legal pages
         {
             url: `${baseUrl}/privacy-policy`,
