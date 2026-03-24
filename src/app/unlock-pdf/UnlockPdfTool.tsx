@@ -6,6 +6,7 @@ import { ToolModal } from "@/components/modal/ToolModal";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 
 
 export default function UnlockPdfTool() {
@@ -20,7 +21,51 @@ export default function UnlockPdfTool() {
     } = useFileUpload([]);
 
     const [password, setPassword] = useState("");
-    const [isProcessing, setIsProcessing] = useState(false);
+
+    const { status, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<number>({
+        processFn: async (targetFiles: File[], onProgress: (progress: number) => void) => {
+            return new Promise(async (resolve, reject) => {
+                let successCount = 0;
+                for (let i = 0; i < targetFiles.length; i++) {
+                    const f = targetFiles[i];
+                    const meta = files.find(mf => mf.file === f);
+                    if (!meta) continue;
+
+                    try {
+                        const arrayBuffer = await f.arrayBuffer();
+
+                        // pdf-lib accepts password in load options to decrypt
+                        const { PDFDocument } = await import("@cantoo/pdf-lib");
+                        const pdfDoc = await PDFDocument.load(arrayBuffer, { password: password } as any);
+
+                        const pdfBytes = await pdfDoc.save();
+                        const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
+                        const url = createSafeObjectURL(blob);
+
+                        updateFileSettings(meta.id, {
+                            unlockedBlob: blob,
+                            unlockedUrl: url,
+                            isUnlocked: true,
+                            needsPassword: false
+                        });
+
+                        toast.success("PDF unlocked successfully!");
+                        successCount++;
+                    } catch (error: any) {
+                        if (error.message?.includes("password")) {
+                            toast.error("Incorrect password. Please try again.");
+                        } else {
+                            toast.error("Failed to unlock PDF. The file might be corrupted.");
+                        }
+                        reject();
+                        return;
+                    }
+                    onProgress(((i + 1) / targetFiles.length) * 100);
+                }
+                resolve(successCount);
+            });
+        }
+    });
 
     const handleUpload = (uploadedFiles: File[]) => {
         addFiles(uploadedFiles, {
@@ -38,38 +83,11 @@ export default function UnlockPdfTool() {
             return;
         }
 
-        setIsProcessing(true);
-        try {
-            const arrayBuffer = await activeFile.file.arrayBuffer();
-
-            // pdf-lib accepts password in load options to decrypt
-            const { PDFDocument } = await import("@cantoo/pdf-lib");
-            const pdfDoc = await PDFDocument.load(arrayBuffer, { password: password } as any);
-
-            const pdfBytes = await pdfDoc.save();
-            const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
-
-            updateFileSettings(activeFile.id, {
-                unlockedBlob: blob,
-                isUnlocked: true,
-                needsPassword: false
-            });
-
-            toast.success("PDF unlocked successfully!");
-
-        } catch (error: any) {
-            if (error.message?.includes("password")) {
-                toast.error("Incorrect password. Please try again.");
-            } else {
-                toast.error("Failed to unlock PDF. The file might be corrupted.");
-            }
-        } finally {
-            setIsProcessing(false);
-        }
+        processFiles([activeFile.file]);
     };
 
     const downloadFile = () => {
-        if (!activeFile?.settings?.unlockedBlob) {
+        if (!activeFile?.settings?.unlockedUrl) {
             toast.error("Download failed: No decrypted file found in memory.");
             return;
         }
@@ -83,13 +101,10 @@ export default function UnlockPdfTool() {
 
             const finalName = `unlocked_${baseName}.pdf`;
 
-            // Generate an ephemeral URL directly from the raw blob
-            const url = URL.createObjectURL(activeFile.settings.unlockedBlob);
-
             // Native anchor trigger
             const a = document.createElement("a");
             a.style.display = "none";
-            a.href = url;
+            a.href = activeFile.settings.unlockedUrl;
             a.download = finalName;
 
             document.body.appendChild(a);
@@ -98,7 +113,6 @@ export default function UnlockPdfTool() {
             // Clean up immediately
             setTimeout(() => {
                 document.body.removeChild(a);
-                URL.revokeObjectURL(url);
             }, 300);
 
         } catch (error) {
@@ -114,6 +128,11 @@ export default function UnlockPdfTool() {
         } else {
             handleUnlock();
         }
+    };
+
+    const handleClearAll = () => {
+        clearAll();
+        clearMemory();
     };
 
     return (
@@ -135,7 +154,7 @@ export default function UnlockPdfTool() {
 
             <ToolModal
                 isOpen={files.length > 0}
-                onClose={clearAll}
+                onClose={handleClearAll}
                 hidePreviewPane={true}
                 title="Unlock PDF"
                 files={files}
@@ -152,12 +171,12 @@ export default function UnlockPdfTool() {
                         ) : (
                             <>
                                 <Icon name="unlock" size={18} />
-                                Unlock Document
+                                {status === 'processing' ? 'Unlocking...' : 'Unlock Document'}
                             </>
                         )}
                     </span>
                 }
-                isProcessing={isProcessing}
+                isProcessing={status === 'processing'}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
@@ -204,7 +223,7 @@ export default function UnlockPdfTool() {
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder="Enter password to unlock"
-                                            disabled={isProcessing}
+                                            disabled={status === 'processing'}
                                             className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400 placeholder:font-normal"
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {

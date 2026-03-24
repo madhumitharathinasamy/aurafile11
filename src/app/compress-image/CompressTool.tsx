@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useFileUpload, type IntegratedFile } from "@/hooks/useFileUpload";
 
 import { ToolSettingsRenderer, SettingGroup, SettingRow, ToggleRow, SelectRow } from "@/components/tools/ToolSettingsRenderer";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 
 type CompressStrategy = "lossy" | "lossless" | "auto";
 type ChromaSubsampling = "4:4:4" | "4:2:0" | "auto";
@@ -60,48 +61,63 @@ export default function CompressTool() {
         isBatchMode
     } = useFileUpload([]);
 
-    const [isProcessing, setIsProcessing] = useState(false);
     const [applyToAll, setApplyToAll] = useState(false);
 
-    async function processSingleFile(currentFile: IntegratedFile) {
-        try {
-            const imageCompression = (await import("browser-image-compression")).default;
-            const options: any = {
-                useWebWorker: true,
-                preserveExif: currentFile.settings.preserveMetadata,
-            };
+    const { status, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<{ success: number, fail: number, batch: boolean }>({
+        processFn: async (targetFiles, onProgress) => {
+            return new Promise(async (resolve, reject) => {
+                let successCount = 0;
+                let failCount = 0;
+                const batch = targetFiles.length > 1 || (applyToAll && isBatchMode);
 
-            if (currentFile.settings.targetMode && currentFile.settings.targetSizeValue) {
-                const targetSize = parseFloat(currentFile.settings.targetSizeValue);
-                if (!isNaN(targetSize) && targetSize > 0) {
-                    options.maxSizeMB = currentFile.settings.targetSizeUnit === "KB" ? targetSize / 1024 : targetSize;
+                // Use the outer `files` reference to locate IntegratedFiles corresponding to passed targetFiles
+                const processingFiles = batch ? files : (activeFile ? [activeFile] : []);
+
+                for (let i = 0; i < processingFiles.length; i++) {
+                    const currentFile = processingFiles[i];
+                    try {
+                        const imageCompression = (await import("browser-image-compression")).default;
+                        const options: any = {
+                            useWebWorker: true,
+                            preserveExif: currentFile.settings.preserveMetadata,
+                        };
+
+                        if (currentFile.settings.targetMode && currentFile.settings.targetSizeValue) {
+                            const targetSize = parseFloat(currentFile.settings.targetSizeValue);
+                            if (!isNaN(targetSize) && targetSize > 0) {
+                                options.maxSizeMB = currentFile.settings.targetSizeUnit === "KB" ? targetSize / 1024 : targetSize;
+                            }
+                        } else {
+                            options.initialQuality = currentFile.settings.quality / 100;
+                            options.maxSizeMB = 50;
+                        }
+
+                        if (currentFile.settings.outputFormat !== "original") {
+                            options.fileType = `image/${currentFile.settings.outputFormat}`;
+                        }
+
+                        const compressedFile = await imageCompression(currentFile.file, options);
+                        const compressedUrl = createSafeObjectURL(compressedFile); // Leverage memory safe urls
+
+                        updateFileSettings(currentFile.id, {
+                            compressedSize: compressedFile.size,
+                            isCompressed: true,
+                            compressedUrl: compressedUrl,
+                            compressedBlob: compressedFile
+                        });
+                        successCount++;
+                    } catch (e) {
+                        toast.error(`Error compressing ${currentFile.file.name}.`);
+                        failCount++;
+                    }
+                    
+                    onProgress(((i + 1) / processingFiles.length) * 100);
                 }
-            } else {
-                // If not target mode, fallback to trying to compress using quality ratio.
-                options.initialQuality = currentFile.settings.quality / 100;
-                options.maxSizeMB = 50;
-            }
 
-            // Output format mapping
-            if (currentFile.settings.outputFormat !== "original") {
-                options.fileType = `image/${currentFile.settings.outputFormat}`;
-            }
-
-            const compressedFile = await imageCompression(currentFile.file, options);
-            const compressedUrl = URL.createObjectURL(compressedFile);
-
-            updateFileSettings(currentFile.id, {
-                compressedSize: compressedFile.size,
-                isCompressed: true,
-                compressedUrl: compressedUrl,
-                compressedBlob: compressedFile
+                resolve({ success: successCount, fail: failCount, batch });
             });
-            return true;
-        } catch (e) {
-            toast.error(`Error compressing ${currentFile.file.name}.`);
-            return false;
         }
-    }
+    });
 
     // Track relevant settings for auto-preview
     const activeSettingsStr = activeFile ? JSON.stringify({
@@ -118,22 +134,24 @@ export default function CompressTool() {
     // Debounced auto-preview
     useEffect(() => {
         if (!activeFile) return;
-        // Don't auto-run if it's already compressed (prevents infinite loop after successful compression)
         if (activeFile.settings.isCompressed) return;
-        // Don't auto-run if target mode is enabled but no value is provided
         if (activeFile.settings.targetMode && !activeFile.settings.targetSizeValue) return;
 
-        const timer = setTimeout(async () => {
-            setIsProcessing(true);
-            await processSingleFile(activeFile);
-            setIsProcessing(false);
+        const timer = setTimeout(() => {
+            // trigger process without batch checking automatically
+            processFiles([activeFile.file]);
         }, 600);
 
         return () => clearTimeout(timer);
-    }, [activeSettingsStr, activeFile]);
+    }, [activeSettingsStr, activeFile, processFiles]);
 
     const handleUpload = async (uploadedFiles: File[]) => {
         addFiles(uploadedFiles, { ...DEFAULT_COMPRESS_SETTINGS });
+    };
+
+    const handleClearAll = () => {
+        clearAll();
+        clearMemory();
     };
 
     const handleSettingChange = (key: keyof CompressSettings, value: any) => {
@@ -149,34 +167,12 @@ export default function CompressTool() {
 
     const handleCompress = async () => {
         if (applyToAll && isBatchMode) {
-            setIsProcessing(true);
-            let successCount = 0;
-            let failCount = 0;
-
-            for (const file of files) {
-                const success = await processSingleFile(file);
-                if (success) successCount++;
-                else failCount++;
-            }
-
-            setIsProcessing(false);
-            if (failCount === 0) {
-                toast.success(`Successfully compressed all ${successCount} images!`);
-            } else {
-                toast.warning(`Finished: ${successCount} successful, ${failCount} failed.`);
-            }
+            processFiles(files.map(f => f.file));
         } else {
             if (!activeFile) return;
-            setIsProcessing(true);
-            const success = await processSingleFile(activeFile);
-            setIsProcessing(false);
-            if (success) {
-                toast.success("Image compressed successfully!");
-            }
+            processFiles([activeFile.file]);
         }
     };
-
-
 
     const formatSize = (bytes: number) => {
         if (bytes === 0) return "0 Bytes";
@@ -204,8 +200,6 @@ export default function CompressTool() {
                     const blob = fileMeta.settings.compressedBlob;
 
                     const originalName = fileMeta.file.name.substring(0, fileMeta.file.name.lastIndexOf('.')) || fileMeta.file.name;
-                    // Format extraction could be improved, but usually compressedUrl has correct mime/extension info. 
-                    // Let's use the explicit target format or default to jpeg/png based on blob type.
                     let targetExt = "jpg";
                     if (fileMeta.settings.outputFormat === "original") {
                         targetExt = fileMeta.file.type.split('/')[1] === "png" ? "png" : "jpg";
@@ -239,7 +233,7 @@ export default function CompressTool() {
     };
 
     const getPrimaryActionText = () => {
-        if (isProcessing) return "Compressing...";
+        if (status === 'processing') return "Compressing...";
         if (applyToAll && isBatchMode) {
             return isAllCompressed ? `Download All (${files.length} Zipped)` : `Compress All (${files.length})`;
         }
@@ -268,7 +262,7 @@ export default function CompressTool() {
 
             <ToolModal
                 isOpen={files.length > 0}
-                onClose={clearAll}
+                onClose={handleClearAll}
                 title="Compress Image"
                 files={files}
                 activeIndex={activeIndex}
@@ -280,7 +274,7 @@ export default function CompressTool() {
                         {getPrimaryActionText()}
                     </span>
                 }
-                isProcessing={isProcessing}
+                isProcessing={status === 'processing'}
                 customPreview={
                     activeFile?.settings.isCompressed && activeFile.settings.compressedUrl ? (
                         <div className="w-full h-full flex items-center justify-center p-4">

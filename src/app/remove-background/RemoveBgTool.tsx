@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { ToolSettingsRenderer, SettingGroup, ToggleRow, SelectRow, SettingRow } from "@/components/tools/ToolSettingsRenderer";
 import { ImageComparison } from "@/components/tools/ImageComparison";
 
@@ -39,41 +40,96 @@ export default function RemoveBgTool() {
         updateFileSettings
     } = useFileUpload([]);
 
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [progress, setProgress] = useState<string>("");
+    const [progressText, setProgressText] = useState<string>("");
     const [longLoading, setLongLoading] = useState(false);
 
-    // Store original blobs and transparent cutout blobs
-    const [cutoutBlobs, setCutoutBlobs] = useState<{ [id: string]: Blob }>({});
-    const [finalUrls, setFinalUrls] = useState<{ [id: string]: string }>({});
+    const { status, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<number>({
+        processFn: async (targetFiles: File[], onProgress: (progress: number) => void) => {
+            return new Promise(async (resolve, reject) => {
+                const f = targetFiles[0];
+                if (!f) return resolve(0);
+                const meta = files.find(mf => mf.file === f);
+                if (!meta) return resolve(0);
+
+                setProgressText("Loading AI model…");
+
+                try {
+                    const { removeBackground } = await import("@imgly/background-removal");
+
+                    // Track downloaded bytes to show model download progress
+                    const downloadedBytes: { [key: string]: number } = {};
+                    const totalBytes: { [key: string]: number } = {};
+
+                    const config = {
+                        model: meta.settings.model as any,
+                        progress: (key: string, current: number, total: number) => {
+                            if (key.startsWith("fetch:")) {
+                                downloadedBytes[key] = current;
+                                totalBytes[key] = total;
+                                const totalDl = Object.values(downloadedBytes).reduce((a, b) => a + b, 0);
+                                const totalAll = Object.values(totalBytes).reduce((a, b) => a + b, 0);
+                                if (totalAll > 0) {
+                                    const pct = Math.round((totalDl / totalAll) * 100);
+                                    const mb = (totalDl / 1024 / 1024).toFixed(1);
+                                    const totalMb = (totalAll / 1024 / 1024).toFixed(1);
+                                    setProgressText(`Downloading AI model… ${mb} / ${totalMb} MB (${pct}%)`);
+                                    onProgress(pct * 0.5); // Download is first half
+                                } else {
+                                    setProgressText("Downloading AI model… (cached)");
+                                    onProgress(50);
+                                }
+                            } else if (key === "compute:inference") {
+                                const percent = Math.round((current / total) * 100);
+                                setProgressText(`Removing background… ${percent}%`);
+                                onProgress(50 + (percent * 0.5)); // Inference is second half
+                            }
+                        },
+                        debug: false
+                    };
+
+                    const blob = await removeBackground(meta.file, config);
+
+                    updateFileSettings(meta.id, {
+                        cutoutBlob: blob,
+                        isDone: true
+                    });
+
+                    setProgressText("Applying final touches…");
+                    await applyPostProcessing(meta.file, blob, meta.settings, meta.id);
+
+                    toast.success("Background removed successfully!");
+                    resolve(1);
+                } catch (error) {
+                    toast.error("Failed to remove background. Please try again.");
+                    reject();
+                } finally {
+                    setProgressText("");
+                    setLongLoading(false);
+                }
+            });
+        }
+    });
 
     // Timeout for long loading message
     useEffect(() => {
         let timer: NodeJS.Timeout;
-        if (isProcessing) {
+        if (status === 'processing') {
             setLongLoading(false);
             timer = setTimeout(() => {
                 setLongLoading(true);
             }, 20000);
         }
         return () => clearTimeout(timer);
-    }, [isProcessing]);
+    }, [status]);
 
     // Re-render final image whenever settings change, IF we have a cutout
     useEffect(() => {
         if (!activeFile) return;
-        const cutout = cutoutBlobs[activeFile.id];
-        if (cutout && activeFile.settings.isDone) {
+        const cutout = activeFile.settings?.cutoutBlob;
+        if (cutout && activeFile.settings.isDone && status !== 'processing') {
             applyPostProcessing(activeFile.file, cutout, activeFile.settings, activeFile.id);
         }
-    }, [activeFile?.settings, cutoutBlobs]);
-
-    // Cleanup URLs
-    useEffect(() => {
-        return () => {
-            Object.values(finalUrls).forEach(url => URL.revokeObjectURL(url));
-        };
-    }, []);
+    }, [activeFile?.settings?.bgType, activeFile?.settings?.bgColor, activeFile?.settings?.blurAmount, activeFile?.settings?.format, activeFile?.settings?.edgeFeathering]);
 
     const handleUpload = (uploadedFiles: File[]) => {
         if (files.length > 0) {
@@ -139,78 +195,19 @@ export default function RemoveBgTool() {
 
         canvas.toBlob((finalBlob) => {
             if (finalBlob) {
-                const url = URL.createObjectURL(finalBlob);
-                setFinalUrls(prev => {
-                    const old = prev[fileId];
-                    if (old) URL.revokeObjectURL(old);
-                    return { ...prev, [fileId]: url };
-                });
+                const url = createSafeObjectURL(finalBlob);
+                updateFileSettings(fileId, { finalUrl: url });
             }
         }, settings.format, 0.95);
     };
 
     const handleProcess = async () => {
         if (!activeFile || activeFile.settings.isDone) return;
-
-        setIsProcessing(true);
-        setProgress("Loading AI model…");
-
-        try {
-            const { removeBackground } = await import("@imgly/background-removal");
-
-            // Track downloaded bytes to show model download progress
-            const downloadedBytes: { [key: string]: number } = {};
-            const totalBytes: { [key: string]: number } = {};
-
-            const config = {
-                model: activeFile.settings.model as any,
-                progress: (key: string, current: number, total: number) => {
-                    if (key.startsWith("fetch:")) {
-                        // Model download progress — show MB downloaded
-                        downloadedBytes[key] = current;
-                        totalBytes[key] = total;
-                        const totalDl = Object.values(downloadedBytes).reduce((a, b) => a + b, 0);
-                        const totalAll = Object.values(totalBytes).reduce((a, b) => a + b, 0);
-                        if (totalAll > 0) {
-                            const pct = Math.round((totalDl / totalAll) * 100);
-                            const mb = (totalDl / 1024 / 1024).toFixed(1);
-                            const totalMb = (totalAll / 1024 / 1024).toFixed(1);
-                            setProgress(`Downloading AI model… ${mb} / ${totalMb} MB (${pct}%)`);
-                        } else {
-                            setProgress("Downloading AI model… (cached)");
-                        }
-                    } else if (key === "compute:inference") {
-                        const percent = Math.round((current / total) * 100);
-                        setProgress(`Removing background… ${percent}%`);
-                    }
-                },
-                debug: false
-            };
-
-            const blob = await removeBackground(activeFile.file, config);
-
-            // Store the pure transparent cutout
-            setCutoutBlobs(prev => ({ ...prev, [activeFile.id]: blob }));
-
-            updateFileSettings(activeFile.id, {
-                isDone: true
-            });
-
-            setProgress("Applying final touches…");
-            await applyPostProcessing(activeFile.file, blob, activeFile.settings, activeFile.id);
-
-            toast.success("Background removed successfully!");
-        } catch (error) {
-            toast.error("Failed to remove background. Please try again.");
-        } finally {
-            setIsProcessing(false);
-            setProgress("");
-            setLongLoading(false);
-        }
+        processFiles([activeFile.file]);
     };
 
     const handleDownload = () => {
-        const urlToDownload = finalUrls[activeFile?.id || ""];
+        const urlToDownload = activeFile?.settings?.finalUrl;
         if (!urlToDownload || !activeFile) return;
 
         const link = document.createElement("a");
@@ -224,22 +221,27 @@ export default function RemoveBgTool() {
     };
 
     const isDone = activeFile?.settings?.isDone;
-    const finalUrl = activeFile ? finalUrls[activeFile.id] : undefined;
+    const finalUrl = activeFile?.settings?.finalUrl;
+
+    const handleClearAll = () => {
+        clearAll();
+        clearMemory();
+    };
 
     const customPreview = activeFile ? (
         <div className="w-full h-full p-4 md:p-8 flex items-center justify-center relative bg-[linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa),linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa)] bg-[length:20px_20px] bg-[position:0_0,10px_10px] bg-white">
-            {isProcessing && (
+            {status === 'processing' && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-md z-50 text-center p-6 gap-4">
                     <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#0081C9] border-t-transparent" />
                     <div>
-                        <p className="text-slate-800 font-semibold text-sm">{progress || "Preparing…"}</p>
-                        {progress.includes("Downloading") && (
+                        <p className="text-slate-800 font-semibold text-sm">{progressText || "Preparing…"}</p>
+                        {progressText.includes("Downloading") && (
                             <p className="text-muted-foreground text-xs mt-1">The AI model is cached after the first download.</p>
                         )}
-                        {progress.includes("Removing") && (
+                        {progressText.includes("Removing") && (
                             <p className="text-muted-foreground text-xs mt-1">Analysing edges and subject…</p>
                         )}
-                        {!progress.includes("Downloading") && !progress.includes("Removing") && (
+                        {!progressText.includes("Downloading") && !progressText.includes("Removing") && (
                             <p className="text-muted-foreground text-xs mt-1">This may take up to 20 seconds on first use.</p>
                         )}
                     </div>
@@ -257,7 +259,7 @@ export default function RemoveBgTool() {
                     alt="Preview"
                     loading="lazy"
                     className="max-w-full max-h-full object-contain drop-shadow-sm pointer-events-none"
-                    style={{ opacity: isProcessing ? 0.3 : 1 }}
+                    style={{ opacity: status === 'processing' ? 0.3 : 1 }}
                 />
             )}
         </div>
@@ -281,7 +283,7 @@ export default function RemoveBgTool() {
 
             <ToolModal
                 isOpen={files.length > 0}
-                onClose={clearAll}
+                onClose={handleClearAll}
                 title="Remove Background"
                 files={files}
                 activeIndex={activeIndex}
@@ -293,7 +295,7 @@ export default function RemoveBgTool() {
                         {isDone ? "Download Image" : "Remove Background"}
                     </span>
                 }
-                isProcessing={isProcessing}
+                isProcessing={status === 'processing'}
                 customPreview={customPreview}
             >
                 {activeFile && (

@@ -7,6 +7,7 @@ import { ToolModal } from "@/components/modal/ToolModal";
 import { Icon } from "@/components/ui/Icon";
 import { resizeImageClient } from "@/lib/processing/resize";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 
 
 import { ToolSettingsRenderer, SettingGroup, SettingRow, ToggleRow, SelectRow } from "@/components/tools/ToolSettingsRenderer";
@@ -50,24 +51,56 @@ export default function ResizeTool() {
         isBatchMode
     } = useFileUpload([]);
 
-    const [isProcessing, setIsProcessing] = useState(false);
     const [applyToAll, setApplyToAll] = useState(false);
-    const [resizedUrls, setResizedUrls] = useState<{ [id: string]: string }>({});
-    const [resizedBlobs, setResizedBlobs] = useState<{ [id: string]: Blob }>({});
 
-    // Cleanup URLs on unmount or file reset
-    useEffect(() => {
-        return () => {
-            Object.values(resizedUrls).forEach(url => URL.revokeObjectURL(url));
-        };
-    }, []);
+    const { status, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<number>({
+        processFn: async (targetFiles: File[], onProgress: (progress: number) => void) => {
+            return new Promise(async (resolve, reject) => {
+                let successCount = 0;
+                try {
+                    for (let i = 0; i < targetFiles.length; i++) {
+                        const fileMeta = files.find(f => f.file === targetFiles[i]);
+                        if (!fileMeta) continue;
+
+                        const w = Number(fileMeta.settings?.width || 0);
+                        const h = Number(fileMeta.settings?.height || 0);
+                        const dims = getComputedDimensions(w, h, fileMeta.settings as ResizeSettings);
+
+                        const targetFormat = (fileMeta.settings.format === "original"
+                            ? (["image/jpeg", "image/png", "image/webp"].includes(fileMeta.file.type)
+                                ? fileMeta.file.type
+                                : "image/jpeg")
+                            : fileMeta.settings.format) as "image/jpeg" | "image/png" | "image/webp";
+
+                        const blob = await resizeImageClient(fileMeta.file, {
+                            width: dims.width,
+                            height: dims.height,
+                            maintainAspectRatio: false,
+                            format: targetFormat,
+                            quality: (fileMeta.settings.quality || 90) / 100,
+                            fit: "contain",
+                            background: fileMeta.settings.fillBackground,
+                            anchor: fileMeta.settings.anchor,
+                            resampling: fileMeta.settings.resampling
+                        });
+
+                        const url = createSafeObjectURL(blob);
+                        updateFileSettings(fileMeta.id, { isResized: true, resizedUrl: url, resizedBlob: blob });
+
+                        successCount++;
+                        onProgress(((i + 1) / targetFiles.length) * 100);
+                    }
+                    toast.success("Images resized successfully! Ready to download.");
+                    resolve(successCount);
+                } catch (error) {
+                    toast.error("Failed to resize images. Please try again.");
+                    reject();
+                }
+            });
+        }
+    });
 
     const handleUpload = async (uploadedFiles: File[]) => {
-        // Reset old URLs
-        setResizedUrls(prev => {
-            Object.values(prev).forEach(url => URL.revokeObjectURL(url));
-            return {};
-        });
 
         const enrichedFiles = await Promise.all(uploadedFiles.map(async (file) => {
             const tempUrl = URL.createObjectURL(file);
@@ -150,56 +183,8 @@ export default function ResizeTool() {
 
     const handleProcess = async () => {
         if (files.length === 0) return;
-        setIsProcessing(true);
-
-        // Clear previous urls
-        setResizedUrls(prev => {
-            Object.values(prev).forEach(url => URL.revokeObjectURL(url));
-            return {};
-        });
-
-        try {
-            const newUrls: { [id: string]: string } = {};
-            const newBlobs: { [id: string]: Blob } = {};
-            const filesToProcess = applyToAll ? files : (activeFile ? [activeFile] : []);
-
-            for (const fileMeta of filesToProcess) {
-                const w = Number(fileMeta.settings?.width || 0);
-                const h = Number(fileMeta.settings?.height || 0);
-                const dims = getComputedDimensions(w, h, fileMeta.settings as ResizeSettings);
-
-                const targetFormat = (fileMeta.settings.format === "original"
-                    ? (["image/jpeg", "image/png", "image/webp"].includes(fileMeta.file.type)
-                        ? fileMeta.file.type
-                        : "image/jpeg")
-                    : fileMeta.settings.format) as "image/jpeg" | "image/png" | "image/webp";
-
-                const blob = await resizeImageClient(fileMeta.file, {
-                    width: dims.width,
-                    height: dims.height,
-                    maintainAspectRatio: false,
-                    format: targetFormat,
-                    quality: (fileMeta.settings.quality || 90) / 100,
-                    fit: "contain",
-                    background: fileMeta.settings.fillBackground,
-                    anchor: fileMeta.settings.anchor,
-                    resampling: fileMeta.settings.resampling
-                });
-
-                newUrls[fileMeta.id] = URL.createObjectURL(blob);
-                newBlobs[fileMeta.id] = blob;
-                updateFileSettings(fileMeta.id, { isResized: true });
-            }
-
-            setResizedUrls(prev => ({ ...prev, ...newUrls }));
-            setResizedBlobs(prev => ({ ...prev, ...newBlobs }));
-            toast.success("Images resized successfully! Ready to download.");
-
-        } catch (error) {
-            toast.error("Failed to resize images. Please try again.");
-        } finally {
-            setIsProcessing(false);
-        }
+        const filesToProcess = applyToAll ? files : (activeFile ? [activeFile] : []);
+        processFiles(filesToProcess.map(f => f.file));
     };
 
     const handleDownload = async () => {
@@ -211,8 +196,8 @@ export default function ResizeTool() {
                 ]);
                 const zip = new JSZip();
                 const promises = files.map(async (fileMeta) => {
-                    if (!fileMeta.settings.isResized || !resizedBlobs[fileMeta.id]) return;
-                    const blob = resizedBlobs[fileMeta.id];
+                    if (!fileMeta.settings.isResized || !fileMeta.settings.resizedBlob) return;
+                    const blob = fileMeta.settings.resizedBlob;
 
                     const targetFormat = (fileMeta.settings.format === "original"
                         ? (fileMeta.file.type.split('/')[1] || "jpg")
@@ -227,8 +212,8 @@ export default function ResizeTool() {
                 const content = await zip.generateAsync({ type: "blob" });
                 saveAs(content, "aurafile-resized.zip");
                 toast.success("Downloaded ZIP file!");
-            } else if (activeFile && activeFile.settings.isResized && resizedBlobs[activeFile.id]) {
-                const blob = resizedBlobs[activeFile.id];
+            } else if (activeFile && activeFile.settings.isResized && activeFile.settings.resizedBlob) {
+                const blob = activeFile.settings.resizedBlob;
 
                 const targetFormat = (activeFile.settings.format === "original"
                     ? (activeFile.file.type.split('/')[1] || "jpg")
@@ -243,8 +228,8 @@ export default function ResizeTool() {
         }
     };
 
-    const isAllReady = applyToAll && files.length > 0 && files.every((f: any) => f.settings.isResized && resizedUrls[f.id]);
-    const isCurrentReady = !applyToAll && activeFile && activeFile.settings.isResized && resizedUrls[activeFile.id];
+    const isAllReady = applyToAll && files.length > 0 && files.every((f: any) => f.settings.isResized && f.settings.resizedUrl);
+    const isCurrentReady = !applyToAll && activeFile && activeFile.settings.isResized && activeFile.settings.resizedUrl;
 
     const handlePrimaryAction = () => {
         if (isAllReady || isCurrentReady) {
@@ -255,10 +240,15 @@ export default function ResizeTool() {
     };
 
     const getPrimaryActionText = () => {
-        if (isProcessing) return "Processing...";
+        if (status === 'processing') return "Processing...";
         if (isAllReady) return `Download All (${files.length} Zipped)`;
         if (isCurrentReady) return "Download Image";
         return applyToAll && files.length > 1 ? `Resize All (${files.length})` : "Resize Image";
+    };
+
+    const handleClearAll = () => {
+        clearAll();
+        clearMemory();
     };
 
     const customPreview = activeFile ? (
@@ -272,8 +262,8 @@ export default function ResizeTool() {
                 }}
             >
                 <img
-                    src={resizedUrls[activeFile.id] || activeFile.previewUrl}
-                    alt={resizedUrls[activeFile.id] ? "Resized Image" : "Live Preview"}
+                    src={activeFile.settings?.resizedUrl || activeFile.previewUrl}
+                    alt={activeFile.settings?.resizedUrl ? "Resized Image" : "Live Preview"}
                     loading="lazy"
                     className="w-full h-full pointer-events-none"
                     style={{
@@ -282,8 +272,8 @@ export default function ResizeTool() {
                 />
             </div>
 
-            <div className={`absolute bottom-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 z-10 ${resizedUrls[activeFile.id] ? 'text-green-600' : 'text-[#0081C9]'}`}>
-                {resizedUrls[activeFile.id] ? (
+            <div className={`absolute bottom-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 z-10 ${activeFile.settings?.resizedUrl ? 'text-green-600' : 'text-[#0081C9]'}`}>
+                {activeFile.settings?.resizedUrl ? (
                     <><Icon name="check-circle" size={14} /> Resized Successfully</>
                 ) : (
                     <><Icon name="eye" size={14} /> Live Preview</>
@@ -304,7 +294,7 @@ export default function ResizeTool() {
 
             <ToolModal
                 isOpen={files.length > 0}
-                onClose={clearAll}
+                onClose={handleClearAll}
                 title="Resize Images"
                 files={files}
                 activeIndex={activeIndex}
@@ -316,7 +306,7 @@ export default function ResizeTool() {
                         {getPrimaryActionText()}
                     </span>
                 }
-                isProcessing={isProcessing}
+                isProcessing={status === 'processing'}
                 customPreview={customPreview}
             >
                 {activeFile && (

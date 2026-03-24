@@ -18,11 +18,11 @@ export function ToolSettingsRenderer({
 }: ToolSettingsRendererProps) {
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col gap-4">
                 <h2 className="text-slate-800 font-sans">{title}</h2>
 
                 {isBatchMode && onApplyToAllChange && (
-                    <div className="flex items-center bg-[#F1F5F9] p-1 rounded-lg self-start sm:self-auto shrink-0">
+                    <div className="flex items-center bg-[#F1F5F9] p-1 rounded-lg w-fit">
                         <button
                             onClick={() => onApplyToAllChange(false)}
                             className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${!applyToAll ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-muted-foreground hover:text-slate-800'}`}

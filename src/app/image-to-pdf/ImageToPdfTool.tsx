@@ -8,6 +8,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useDropzone } from "react-dropzone";
 import { UPLOAD_LIMITS } from "@/config/limits";
 import { toast } from "sonner";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 
 type PageSizeOption = "a4-p" | "a4-l" | "us-letter";
 type MarginOption = "none" | "small" | "large";
@@ -22,18 +23,32 @@ export default function ImageToPdfTool() {
         clearAll
     } = useFileUpload([]);
 
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [isDone, setIsDone] = useState(false);
+    const { status, result, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<{ blob: Blob, url: string }>({
+        processFn: async (targetFiles: File[], onProgress: (progress: number) => void): Promise<{ blob: Blob, url: string }> => {
+            const { generatePdfFromImages } = await import("@/lib/pdf-processing/image-to-pdf");
+            
+            // To emulate progress for the user since generation is blocking
+            onProgress(25);
+            
+            const blob = await generatePdfFromImages(targetFiles, {
+                pageSize,
+                margin,
+            });
+            
+            onProgress(100);
+            const url = createSafeObjectURL(blob);
+            toast.success("PDF generated successfully!");
+            return { blob, url };
+        }
+    });
+
     const [pageSize, setPageSize] = useState<PageSizeOption>("a4-p");
     const [margin, setMargin] = useState<MarginOption>("none");
-    const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
     const handleUpload = async (uploadedFiles: File[]) => {
         addFiles(uploadedFiles);
-        // Reset done state on new upload
-        if (isDone) {
-            setIsDone(false);
-            setPdfBlobUrl(null);
+        if (status === 'completed' || result) {
+            clearMemory();
         }
     };
 
@@ -64,22 +79,17 @@ export default function ImageToPdfTool() {
         }
     });
 
-    const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-
     const handleProcess = async () => {
-        if (isDone && pdfBlob) {
-            // Robust download trigger for existing generated blob
+        if (result && status === 'completed') {
             try {
-                const url = URL.createObjectURL(pdfBlob);
                 const a = document.createElement("a");
                 a.style.display = "none";
-                a.href = url;
+                a.href = result.url;
                 a.download = `aurafile_merged_images.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 setTimeout(() => {
                     document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
                 }, 100);
             } catch (e) {
                 toast.error("Failed to download PDF.");
@@ -88,32 +98,12 @@ export default function ImageToPdfTool() {
         }
 
         if (files.length === 0) return;
-
-        setIsProcessing(true);
-        try {
-            const rawFiles = files.map(f => f.file);
-            const { generatePdfFromImages } = await import("@/lib/pdf-processing/image-to-pdf");
-            const blob = await generatePdfFromImages(rawFiles, {
-                pageSize,
-                margin,
-            });
-
-            setPdfBlob(blob);
-            setIsDone(true);
-            toast.success("PDF generated successfully!");
-
-        } catch (error) {
-            toast.error("Failed to generate PDF. Check console for details.");
-        } finally {
-            setIsProcessing(false);
-        }
+        processFiles(files.map(f => f.file));
     };
 
     const handleClear = () => {
         clearAll();
-        setIsDone(false);
-        if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
-        setPdfBlobUrl(null);
+        clearMemory();
     };
 
     return (
@@ -136,7 +126,7 @@ export default function ImageToPdfTool() {
                 onPrimaryAction={handleProcess}
                 primaryActionText={
                     <span className="flex items-center justify-center gap-2">
-                        {isDone ? (
+                        {status === 'completed' ? (
                             <>
                                 <Icon name="download" size={18} />
                                 Download PDF
@@ -144,12 +134,12 @@ export default function ImageToPdfTool() {
                         ) : (
                             <>
                                 <Icon name="file-plus" size={18} />
-                                Generate PDF
+                                {status === 'processing' ? "Generating..." : "Generate PDF"}
                             </>
                         )}
                     </span>
                 }
-                isProcessing={isProcessing}
+                isProcessing={status === 'processing'}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
@@ -166,7 +156,7 @@ export default function ImageToPdfTool() {
                                     <div className="flex-1 min-w-0">
                                         <p className="text-slate-800 truncate">Batch of {files.length} Images</p>
                                         <p className="text-muted-foreground mt-0.5">
-                                            {isDone ? "Converted Successfully" : "Ready for conversion"}
+                                            {status === 'completed' ? "Converted Successfully" : "Ready for conversion"}
                                         </p>
                                     </div>
                                 </div>
@@ -185,7 +175,7 @@ export default function ImageToPdfTool() {
                                         value={pageSize}
                                         onChange={(e) => setPageSize(e.target.value as PageSizeOption)}
                                         className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer"
-                                        disabled={isDone || isProcessing}
+                                        disabled={status === 'completed' || status === 'processing'}
                                     >
                                         <option value="a4-p">A4 (Portrait)</option>
                                         <option value="a4-l">A4 (Landscape)</option>
@@ -199,7 +189,7 @@ export default function ImageToPdfTool() {
                                         value={margin}
                                         onChange={(e) => setMargin(e.target.value as MarginOption)}
                                         className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer"
-                                        disabled={isDone || isProcessing}
+                                        disabled={status === 'completed' || status === 'processing'}
                                     >
                                         <option value="none">None (0px)</option>
                                         <option value="small">Small (10px)</option>
@@ -210,7 +200,7 @@ export default function ImageToPdfTool() {
                         </div>
 
                         {/* Add More Files Dropzone */}
-                        {files.length < UPLOAD_LIMITS.MAX_FILES && !isDone && (
+                        {files.length < UPLOAD_LIMITS.MAX_FILES && status !== 'completed' && (
                             <div
                                 {...getRootProps()}
                                 className={`mt-8 w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer transition-all duration-200 ease-in-out flex flex-col items-center justify-center gap-2 ${isDragActive
