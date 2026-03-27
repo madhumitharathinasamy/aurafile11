@@ -8,11 +8,13 @@ const targetDir = path.join(__dirname, '../public/models/background-removal');
 const files = [
   'isnet.onnx',
   'isnet_fp16.onnx',
+  'isnet_quint8.onnx',
   'ort-wasm-simd.wasm',
   'ort-wasm.wasm'
 ];
 
-const baseUrl = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/';
+// Using version 1.4.5 which is the latest confirmed on npm/CDNs
+const baseUrl = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.4.5/dist/';
 
 async function download() {
   if (!fs.existsSync(targetDir)) {
@@ -25,15 +27,16 @@ async function download() {
     const url = `${baseUrl}${file}`;
     const targetPath = path.join(targetDir, file);
 
-    if (fs.existsSync(targetPath)) {
-      console.log(`[SKIPPED] ${file} already exists.`);
-      continue;
-    }
-
     console.log(`[DOWNLOADING] ${file}...`);
     try {
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+         if (response.status === 404) {
+             console.warn(`[SKIP] ${file} not found on CDN (HTTP 404).`);
+             continue;
+         }
+         throw new Error(`HTTP ${response.status}`);
+      }
       const buffer = await response.arrayBuffer();
       fs.writeFileSync(targetPath, Buffer.from(buffer));
       console.log(`[SUCCESS] ${file} saved.`);
