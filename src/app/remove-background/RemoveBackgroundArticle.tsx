@@ -1,73 +1,73 @@
 import React from 'react';
 import Link from 'next/link';
+import { Icon } from '@/components/ui/Icon';
 
 export function RemoveBackgroundArticle() {
     return (
-        <article className="prose prose-slate max-w-none text-slate-600">
-            <h2 className="text-3xl font-bold text-slate-900 mb-6">AI Background Removal: Fast, Free, and 100% Private</h2>
+        <article className="prose prose-slate max-w-none">
+            <h2 className="text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">AI Background Removal: Precision in Your Browser</h2>
             
-            <p>
-                Removing the background from an image—isolating the primary subject and rendering the background transparent—used to require hours of meticulous tracing in professional desktop software like Adobe Photoshop. Today, Artificial Intelligence has democratized this capability. 
-            </p>
-            <p>
-                However, most AI tools are completely cloud-dependent. You upload your portrait, product photo, or sensitive graphic to a remote server, where a server-side GPU processes it and sends the result back. At AuraFile, we have pioneered a different approach: <strong>Client-Side AI Inference.</strong>
-            </p>
-
-            <h3 className="text-2xl font-bold text-slate-900 mt-10 mb-4">How Can AI Run in a Web Browser?</h3>
-            <p>
-                The secret behind our instant, private background remover is the integration of modern WebGL frameworks and high-efficiency neural networks optimized specifically for edge devices.
-            </p>
-            <p>
-                When you initiate the background removal tool for the first time, your browser securely downloads a compact, heavily-quantized neural network model. This model is cached locally. From that point forward, whenever you select an image, the AI inference executes entirely on your device's native hardware (utilizing your local GPU or CPU). 
-            </p>
-            <p>
-                This architecture provides unprecedented benefits:
-            </p>
-            <ul>
-                <li><strong>Zero Data Exfiltration:</strong> Because the AI model runs locally, your images are never transmitted over the internet to a third party. This is absolutely critical for unreleased product photography, confidential documents, or personal portraits.</li>
-                <li><strong>No Subscription Fees:</strong> Cloud AI APIs charge per-image because GPU server time is expensive. Because you are utilizing your own hardware to run the math, we can offer unlimited background removals without API constraints or paywalls.</li>
-                <li><strong>Sub-Second Processing:</strong> Once the model is cached, the time it takes to process an image is restricted only by the computational power of your device, completely eliminating network latency.</li>
-            </ul>
-
-            <h3 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Perfecting E-Commerce and Product Photography</h3>
-            <p>
-                The most prevalent use case for background removal is digital commerce. Marketplaces like Amazon and Shopify heavily penalize product listings with cluttered or non-white backgrounds. A crisp product shot on a pure transparent or white background dramatically increases conversion rates and consumer trust.
-            </p>
-            <p>
-                To achieve the best results for your storefront:
-            </p>
-            <ol>
-                <li>Shoot your product against a high-contrast background. While our AI is excellent at distinguishing fine details (like hair or transparent glass), extreme contrast between the subject and the backdrop guarantees a flawless alpha mask.</li>
-                <li>Use our Remove Background tool to instantly generate a transparent PNG.</li>
-                <li>If the resulting high-resolution PNG is too massive for your eCommerce platform, run it immediately through our <Link href="/compress-image" className="text-[#00B4D8] hover:underline font-medium">Image Compressor</Link> to optimize the file size without losing the transparent alpha channel.</li>
-                <li>If you need a specific square aspect ratio for Instagram or catalog grids, use our <Link href="/crop-image" className="text-[#00B4D8] hover:underline font-medium">Image Cropper</Link> to perfectly center your freshly isolated product.</li>
-            </ol>
-
-            <h3 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Creative Workflows and Graphic Design</h3>
-            <p>
-                Beyond standard product cutouts, a transparent background is the foundational stepping stone for complex graphic design composites, YouTube thumbnails, and marketing materials.
-            </p>
-            <p>
-                Our AI model has been explicitly trained to handle difficult edge cases that traditional "magic wand" tools fail at, such as:
-            </p>
-            <ul>
-                <li><strong>Complex Hair and Fur:</strong> Retaining the fine strands of a model's hair or a pet's fur against a busy environment.</li>
-                <li><strong>Semi-Transparent Objects:</strong> Correctly masking windows, glasses, and translucent plastics.</li>
-                <li><strong>Multi-Subject Crowds:</strong> Accurately identifying the foreground subjects even in visually noisy scenarios.</li>
-            </ul>
-
-            <h3 className="text-2xl font-bold text-slate-900 mt-10 mb-4">Technical Limitations and Best Practices</h3>
-            <p>
-                While client-side AI is incredibly powerful, it operates within the constraints of your physical device. If you are attempting to process a massive 50-megapixel RAW file on an older smartphone, the local memory allocation may fail or take a significant amount of time.
-            </p>
-            <p>
-                To circumvent memory limits on low-end devices, we strongly recommend scaling down exceptionally massive images using our <Link href="/resize-image" className="text-[#00B4D8] hover:underline font-medium">Image Resizer</Link> prior to running the background removal algorithm. A 2000-pixel wide image will still provide excellent, sharp edges while processing significantly faster than an 8000-pixel raw file.
-            </p>
-            
-            <div className="mt-12 p-6 bg-slate-50 border border-slate-200 rounded-xl">
-                <p className="text-sm m-0">
-                    <em>Privacy Guarantee: We believe AI should not compromise your data privacy. By leveraging ONNX Web Runtime directly in the browser, your original photos and the resulting transparent cutouts never leave the local memory sandbox of your current session.</em>
+            <div className="p-6 bg-primary/5 rounded-2xl border border-primary/10 mb-10">
+                <p className="m-0 text-primary-foreground/80 font-medium">
+                    Our background removal tool uses state-of-the-art neural networks (U-2-Net architectures) to isolate subjects with pixel-perfect accuracy—all without your data ever leaving your device.
                 </p>
+            </div>
+
+            <p className="text-lg leading-relaxed text-slate-600 mb-8">
+                Isolating a subject from its background is one of the most common yet tedious tasks in image editing. Whether you're preparing product listings for E-commerce or creating marketing materials, our AI tool saves you hours of manual masking.
+            </p>
+
+            <h3 className="text-2xl font-bold text-slate-900 mt-12 mb-6">How It Works</h3>
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+                {[
+                    { title: "Select Image", desc: "Upload a JPG, PNG, or WebP. Portraits and well-lit products work best.", icon: "upload-cloud" },
+                    { title: "AI Analysis", desc: "The model runs locally, identifying edges, hair, and complex contours.", icon: "cpu" },
+                    { title: "Download PNG", desc: "Save your result as a high-quality transparent PNG file instantly.", icon: "file-check" }
+                ].map((step, i) => (
+                    <div key={i} className="p-5 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mb-4">
+                            <Icon name={step.icon as any} size={20} className="text-primary" />
+                        </div>
+                        <h4 className="font-bold text-slate-900 mb-2">{step.title}</h4>
+                        <p className="text-sm text-slate-500 m-0">{step.desc}</p>
+                    </div>
+                ))}
+            </div>
+
+            <h3 className="text-2xl font-bold text-slate-900 mt-12 mb-6">Designed for Privacy and Performance</h3>
+            <p className="text-slate-600 mb-6">
+                Most AI tools require you to upload your files to their servers. This not only consumes data but compromises privacy. AuraFile executes the entire AI inference process in your browser via <strong>WebAssembly (WASM)</strong> and <strong>WebGL</strong>.
+            </p>
+            
+            <ul className="space-y-4 text-slate-600 mb-10">
+                <li className="flex gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></span>
+                    <span><strong>100% Confidential:</strong> Sensitive product prototypes or personal photos stay in your local memory.</span>
+                </li>
+                <li className="flex gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></span>
+                    <span><strong>No Usage Limits:</strong> Because you use your own hardware power, we don't need to charge for cloud processing time.</span>
+                </li>
+                <li className="flex gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></span>
+                    <span><strong>Industry Quality:</strong> Utilizing the same models used by professional photographers for hair and detail isolation.</span>
+                </li>
+            </ul>
+
+            <div className="mt-16 p-8 rounded-3xl bg-slate-900 text-white relative overflow-hidden">
+                <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+                    <div className="flex-1">
+                        <h4 className="text-2xl font-bold mb-4">Ready for your listings?</h4>
+                        <p className="text-slate-300 mb-0">After removing the background, you might want to optimize the file size for your website.</p>
+                    </div>
+                    <Link 
+                        href="/compress-image" 
+                        className="px-8 py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-100 transition-colors inline-block"
+                    >
+                        Compress Image
+                    </Link>
+                </div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-3xl rounded-full -mr-32 -mt-32"></div>
             </div>
         </article>
     );

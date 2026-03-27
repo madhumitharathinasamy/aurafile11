@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { generatePdfPreview } from "@/lib/pdf-processing/pdf-preview";
 import { PdfSecuritySeo } from "@/components/seo/SeoContentBlocks";
 
@@ -23,7 +24,62 @@ export default function ProtectPdfTool() {
     } = useFileUpload([]);
 
     const [password, setPassword] = useState("");
-    const [isProcessing, setIsProcessing] = useState(false);
+
+    const { status, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<number>({
+        processFn: async (targetFiles: File[], onProgress: (progress: number) => void) => {
+            return new Promise(async (resolve, reject) => {
+                let successCount = 0;
+                for (let i = 0; i < targetFiles.length; i++) {
+                    const f = targetFiles[i];
+                    const meta = files.find(mf => mf.file === f);
+                    if (!meta) continue;
+
+                    try {
+                        const arrayBuffer = await f.arrayBuffer();
+                        const worker = new Worker(new URL('../../workers/pdf.worker.ts', import.meta.url));
+
+                        await new Promise<void>((wrRes, wrRej) => {
+                            worker.onmessage = (e) => {
+                                if (e.data.type === 'SUCCESS') {
+                                    const blob = new Blob([e.data.payload.buffer], { type: "application/pdf" });
+                                    const url = createSafeObjectURL(blob);
+
+                                    updateFileSettings(meta.id, {
+                                        protectedUrl: url,
+                                        protectedBlob: blob,
+                                        isProtected: true
+                                    });
+                                    successCount++;
+                                    toast.success("PDF protected successfully!");
+                                    wrRes();
+                                } else if (e.data.type === 'ERROR') {
+                                    toast.error("Failed to protect PDF. The file might already be encrypted.");
+                                    wrRej();
+                                }
+                                worker.terminate();
+                            };
+
+                            worker.onerror = () => {
+                                toast.error("Failed to initialize security worker.");
+                                worker.terminate();
+                                wrRej();
+                            };
+
+                            worker.postMessage({
+                                type: 'PROTECT',
+                                payload: { buffer: arrayBuffer, password }
+                            });
+                        });
+                    } catch (error) {
+                         // handled inside worker onerror/onmessage mostly
+                    }
+
+                    onProgress(((i + 1) / targetFiles.length) * 100);
+                }
+                resolve(successCount);
+            });
+        }
+    });
 
     useEffect(() => {
         files.forEach(async (fileObj) => {
@@ -53,54 +109,14 @@ export default function ProtectPdfTool() {
             return;
         }
 
-        setIsProcessing(true);
-        try {
-            const arrayBuffer = await activeFile.file.arrayBuffer();
-
-            const worker = new Worker(new URL('../../workers/pdf.worker.ts', import.meta.url));
-
-            worker.onmessage = (e) => {
-                if (e.data.type === 'SUCCESS') {
-                    const blob = new Blob([e.data.payload.buffer], { type: "application/pdf" });
-                    const url = URL.createObjectURL(blob);
-
-                    updateFileSettings(activeFile.id, {
-                        protectedUrl: url,
-                        protectedBlob: blob,
-                        isProtected: true
-                    });
-
-                    toast.success("PDF protected successfully!");
-                } else if (e.data.type === 'ERROR') {
-                    toast.error("Failed to protect PDF. The file might already be encrypted.");
-                }
-
-                setIsProcessing(false);
-                worker.terminate();
-            };
-
-            worker.onerror = (error) => {
-                toast.error("Failed to initialize security worker.");
-                setIsProcessing(false);
-                worker.terminate();
-            };
-
-            worker.postMessage({
-                type: 'PROTECT',
-                payload: { buffer: arrayBuffer, password }
-            });
-
-        } catch (error) {
-            toast.error("Failed to process PDF.");
-            setIsProcessing(false);
-        }
+        processFiles([activeFile.file]);
     };
 
     const downloadFile = async () => {
         if (!activeFile?.settings?.protectedBlob) return;
 
         try {
-            const blobUrl = URL.createObjectURL(activeFile.settings.protectedBlob);
+            const blobUrl = createSafeObjectURL(activeFile.settings.protectedBlob);
 
             const link = document.createElement("a");
             link.style.display = "none";
@@ -116,7 +132,6 @@ export default function ProtectPdfTool() {
             link.click();
             setTimeout(() => {
                 document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
             }, 100);
         } catch (error) {
             toast.error("Failed to download protected PDF safely.");
@@ -131,6 +146,11 @@ export default function ProtectPdfTool() {
         } else {
             handleProtect();
         }
+    };
+
+    const handleClearAll = () => {
+        clearAll();
+        clearMemory();
     };
 
     return (
@@ -154,7 +174,7 @@ export default function ProtectPdfTool() {
 
             <ToolModal
                 isOpen={files.length > 0}
-                onClose={clearAll}
+                onClose={handleClearAll}
                 hidePreviewPane={false}
                 title="Protect PDF"
                 files={files}
@@ -171,12 +191,16 @@ export default function ProtectPdfTool() {
                         ) : (
                             <>
                                 <Icon name="lock" size={18} />
-                                Encrypt Document
+                                {status === 'processing' ? 'Encrypting...' : 'Encrypt Document'}
                             </>
                         )}
                     </span>
                 }
-                isProcessing={isProcessing}
+                isProcessing={status === 'processing'}
+                isSuccess={isProtected}
+                onDownload={downloadFile}
+                onStartOver={clearAll}
+                onWipeMemory={handleClearAll}
                 customPreview={
                     <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-[#e3e7e9] bg-[radial-gradient(#d1d5db_1px,transparent_1px)] [background-size:16px_16px] relative overflow-hidden">
                         {activeFile?.previewUrl && (
@@ -255,7 +279,7 @@ export default function ProtectPdfTool() {
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder="Enter strong password"
-                                            disabled={isProcessing}
+                                            disabled={status === 'processing'}
                                             className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400 placeholder:font-normal"
                                         />
                                     </div>

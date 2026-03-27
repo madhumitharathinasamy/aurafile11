@@ -67,6 +67,7 @@ import {
     Facebook,
     Mail,
     Search,
+    Info,
     LucideProps
 } from "lucide-react";
 
@@ -140,6 +141,7 @@ export type IconName =
     | "linkedin"
     | "facebook"
     | "mail"
+    | "info"
     | "search";
 
 const icons: Record<IconName, React.FC<LucideProps>> = {
@@ -212,6 +214,7 @@ const icons: Record<IconName, React.FC<LucideProps>> = {
     linkedin: Linkedin,
     facebook: Facebook,
     mail: Mail,
+    info: Info,
     search: Search,
 };
 

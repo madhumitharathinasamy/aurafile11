@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 import { ImageComparison } from "@/components/tools/ImageComparison";
 import { useFileUpload, type IntegratedFile } from "@/hooks/useFileUpload";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { ToolSettingsRenderer, SettingGroup, SelectRow, SettingRow, ToggleRow } from "@/components/tools/ToolSettingsRenderer";
 
 
@@ -54,20 +55,70 @@ export default function ConvertTool() {
         isBatchMode
     } = useFileUpload([]);
 
-    const [isConverting, setIsConverting] = useState<boolean>(false);
-    const [convertedFiles, setConvertedFiles] = useState<{ [key: string]: string }>({});
-    const [convertedBlobs, setConvertedBlobs] = useState<{ [key: string]: Blob }>({});
     const [applyToAll, setApplyToAll] = useState(false);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            setConvertedFiles(prev => {
-                Object.values(prev).forEach(url => URL.revokeObjectURL(url));
-                return {};
+    const { status, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<number>({
+        processFn: async (targetFiles: File[], onProgress: (progress: number) => void) => {
+            return new Promise(async (resolve, reject) => {
+                let successCount = 0;
+                let errorCount = 0;
+
+                const batchMeta = targetFiles.map(f => files.find(meta => meta.file === f)).filter(Boolean) as IntegratedFile[];
+
+                const totalBytes = batchMeta.reduce((acc, f) => acc + f.file.size, 0);
+                const isHeavyBatch = totalBytes > 1024 * 1024 * 1024; // > 1GB
+
+                if (isHeavyBatch && batchMeta.length > 1) {
+                    toast.warning(`Large batch detected (${(totalBytes / 1024 / 1024).toFixed(0)}MB). Using deep sequential processing to save memory...`);
+                }
+
+                for (let i = 0; i < batchMeta.length; i++) {
+                    const fileMeta = batchMeta[i];
+                    if (isHeavyBatch && batchMeta.length > 1) {
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+
+                    try {
+                        const conversionFormat = fileMeta.settings.targetFormat.toLowerCase();
+                        const mimeType = `image/${conversionFormat === 'jpg' ? 'jpeg' : conversionFormat}`;
+                        const options = {
+                            useWebWorker: true,
+                            maxSizeMB: 50,
+                            initialQuality: fileMeta.settings.quality / 100,
+                            fileType: mimeType
+                        };
+
+                        const imageCompression = (await import("browser-image-compression")).default;
+                        const resultBlob = await imageCompression(fileMeta.file, options);
+                        const convertedUrl = createSafeObjectURL(resultBlob);
+
+                        updateFileSettings(fileMeta.id, {
+                            convertedUrl,
+                            convertedBlob: resultBlob
+                        });
+                        successCount++;
+                    } catch (e: any) {
+                        toast.error(`Error converting ${fileMeta.file.name}`);
+                        errorCount++;
+                    }
+
+                    onProgress(((i + 1) / batchMeta.length) * 100);
+                }
+
+                if (successCount === 0 && batchMeta.length > 0) {
+                    toast.error("Failed to convert files. Please try again.");
+                } else if (errorCount > 0) {
+                    toast.warning(`Converted ${successCount} files. ${errorCount} failed.`);
+                } else if (batchMeta.length > 1) {
+                    toast.success(`Successfully converted ${successCount} files!`);
+                } else {
+                    toast.success('Successfully converted!');
+                }
+
+                resolve(successCount);
             });
-        };
-    }, []);
+        }
+    });
 
     const handleUpload = (newFiles: File[]) => {
         const uniqueFiles = newFiles.filter(newFile =>
@@ -106,116 +157,31 @@ export default function ConvertTool() {
         }
 
         // Wipe converted results since settings changed
-        if (Object.keys(convertedFiles).length > 0) {
-            Object.values(convertedFiles).forEach(url => URL.revokeObjectURL(url));
-            setConvertedFiles({});
-            setConvertedBlobs({});
-        }
-
         if (applyToAll && isBatchMode) {
-            updateAllFileSettings(finalUpdates);
+            updateAllFileSettings({ ...finalUpdates, convertedUrl: null, convertedBlob: null });
         } else {
-            updateFileSettings(activeFile.id, finalUpdates);
-        }
-    };
-
-    const processSingleFile = async (integratedFile: IntegratedFile) => {
-        try {
-            // Setup target options
-            const conversionFormat = integratedFile.settings.targetFormat.toLowerCase();
-            const mimeType = `image/${conversionFormat === 'jpg' ? 'jpeg' : conversionFormat}`;
-
-            let sourceFile: File | Blob = integratedFile.file;
-
-            // Note: browser-image-compression is primarily for compression, 
-            // but we can use it for fileType conversion between web-safe formats
-            const options = {
-                useWebWorker: true,
-                maxSizeMB: 50, // Don't significantly compress
-                initialQuality: integratedFile.settings.quality / 100, // Still apply their requested quality
-                fileType: mimeType
-            };
-
-            const imageCompression = (await import("browser-image-compression")).default;
-            const resultFile = await imageCompression(integratedFile.file, options);
-
-            const convertedUrl = URL.createObjectURL(resultFile);
-
-            setConvertedFiles(prev => ({
-                ...prev,
-                [integratedFile.id]: convertedUrl
-            }));
-            setConvertedBlobs(prev => ({
-                ...prev,
-                [integratedFile.id]: resultFile
-            }));
-            return true;
-        } catch (e: any) {
-            console.error("Conversion Error:", e);
-            toast.error(`Error converting ${integratedFile.file.name}: ${e?.message || e?.toString() || "Unknown error"}`);
-            return false;
+            updateFileSettings(activeFile.id, { ...finalUpdates, convertedUrl: null, convertedBlob: null });
         }
     };
 
     const handleConvert = async () => {
         if (files.length === 0) return;
 
-        setIsConverting(true);
-        // Clean up previous URLs
-        Object.values(convertedFiles).forEach(url => URL.revokeObjectURL(url));
-        setConvertedFiles({});
-        setConvertedBlobs({});
+        const filesToProcess = applyToAll && isBatchMode ? files : activeFile ? [activeFile] : [];
+        
+        // Reset old blobs before starting via settings
+        filesToProcess.forEach(f => {
+            updateFileSettings(f.id, { convertedUrl: null, convertedBlob: null });
+        });
 
-        let successCount = 0;
-        let errorCount = 0;
-
-        if (applyToAll && isBatchMode) {
-
-            // Phase 3 Memory Monitor: Fallback to Sequential Processing
-            const totalBytes = files.reduce((acc, f) => acc + f.file.size, 0);
-            const isHeavyBatch = totalBytes > 1024 * 1024 * 1024; // > 1GB
-
-            if (isHeavyBatch) {
-                toast.warning(`Large batch detected (${(totalBytes / 1024 / 1024).toFixed(0)}MB). Using deep sequential processing to save memory...`);
-            } else {
-                toast.info(`Starting conversion of ${files.length} files...`);
-            }
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                if (isHeavyBatch) {
-                    toast.info(`Processing ${i + 1}/${files.length}...`);
-                    // Extra tick for garbage collection on heavy batches
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-                const success = await processSingleFile(file);
-                if (success) successCount++;
-                else errorCount++;
-            }
-        } else {
-            if (!activeFile) return;
-            toast.info(`Converting ${activeFile.file.name}...`);
-            const success = await processSingleFile(activeFile);
-            if (success) successCount++;
-            else errorCount++;
-        }
-
-        setIsConverting(false);
-
-        if (successCount === 0) {
-            toast.error("Failed to convert files. Please try again.");
-        } else if (errorCount > 0) {
-            toast.warning(`Converted ${successCount} files. ${errorCount} failed.`);
-        } else {
-            toast.success(`Successfully converted ${successCount} files!`);
-        }
+        processFiles(filesToProcess.map(f => f.file));
     };
 
     const getDownloadExt = (format: string) => format === "jpeg" ? "jpg" : format;
 
     const downloadFile = async (fileName: string, fileBlob: Blob, format: string) => {
         try {
-            const blobUrl = URL.createObjectURL(fileBlob);
+            const blobUrl = createSafeObjectURL(fileBlob);
 
             const link = document.createElement("a");
             link.style.display = "none";
@@ -226,7 +192,6 @@ export default function ConvertTool() {
             link.click();
             setTimeout(() => {
                 document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
             }, 100);
         } catch (error) {
             toast.error("Failed to download image safely.");
@@ -239,8 +204,8 @@ export default function ConvertTool() {
             const zip = new JSZip();
             const usedNames = new Set<string>();
 
-            const promises = files.map(async ({ id, file, settings }) => {
-                const fileUrl = convertedFiles[id];
+            const promises = files.map(async ({ file, settings }) => {
+                const fileUrl = settings.convertedUrl;
                 if (!fileUrl) return;
 
                 const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
@@ -254,7 +219,7 @@ export default function ConvertTool() {
                 }
                 usedNames.add(fileName);
 
-                const fileBlob = convertedBlobs[id];
+                const fileBlob = settings.convertedBlob;
                 if (!fileBlob) throw new Error(`Failed to retrieve ${fileName}`);
                 zip.file(fileName, fileBlob);
             });
@@ -262,29 +227,28 @@ export default function ConvertTool() {
             await Promise.all(promises);
 
             const content = await zip.generateAsync({ type: "blob" });
-            const url = URL.createObjectURL(content);
+            const url = createSafeObjectURL(content);
             const link = document.createElement("a");
             link.href = url;
             link.download = `converted_images_${new Date().getTime()}.zip`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(url);
         } catch (error) {
             toast.error("Failed to download zip file. Please try again.");
         }
     };
 
-    const isCurrentFileConverted = activeFile && convertedFiles[activeFile.id];
-    const isAllConverted = files.length > 0 && files.every(f => convertedFiles[f.id]);
+    const isCurrentFileConverted = activeFile && activeFile.settings?.convertedUrl;
+    const isAllConverted = files.length > 0 && files.every(f => f.settings?.convertedUrl);
 
     const handlePrimaryAction = () => {
         if (applyToAll && isBatchMode) {
             if (isAllConverted) downloadAll();
             else handleConvert();
         } else {
-            if (isCurrentFileConverted && activeFile && convertedBlobs[activeFile.id]) {
-                downloadFile(activeFile.file.name, convertedBlobs[activeFile.id], activeFile.settings.targetFormat);
+            if (isCurrentFileConverted && activeFile && activeFile.settings?.convertedBlob) {
+                downloadFile(activeFile.file.name, activeFile.settings.convertedBlob, activeFile.settings.targetFormat);
             } else {
                 handleConvert();
             }
@@ -292,11 +256,16 @@ export default function ConvertTool() {
     };
 
     const getPrimaryActionText = () => {
-        if (isConverting) return "Converting...";
+        if (status === 'processing') return "Converting...";
         if (applyToAll && isBatchMode) {
             return isAllConverted ? `Download All (${files.length})` : `Convert All (${files.length})`;
         }
         return isCurrentFileConverted ? "Download Image" : "Convert Active File";
+    };
+
+    const handleClearAll = () => {
+        clearAll();
+        clearMemory();
     };
 
     return (
@@ -311,7 +280,7 @@ export default function ConvertTool() {
 
             <ToolModal
                 isOpen={files.length > 0}
-                onClose={clearAll}
+                onClose={handleClearAll}
                 title="Image Converter"
                 files={files}
                 activeIndex={activeIndex}
@@ -323,12 +292,21 @@ export default function ConvertTool() {
                         {getPrimaryActionText()}
                     </span>
                 }
-                isProcessing={isConverting}
+                isProcessing={status === 'processing'}
+                isSuccess={(applyToAll && isBatchMode) ? isAllConverted : isCurrentFileConverted}
+                onDownload={() => {
+                    if (applyToAll && isBatchMode) downloadAll();
+                    else if (activeFile && activeFile.settings?.convertedBlob) {
+                        downloadFile(activeFile.file.name, activeFile.settings.convertedBlob, activeFile.settings.targetFormat);
+                    }
+                }}
+                onStartOver={handleClearAll}
+                onWipeMemory={clearMemory}
                 customPreview={
                     isCurrentFileConverted ? (
                         <div className="w-full h-full p-4 md:p-8 flex items-center justify-center relative">
                             <img
-                                src={convertedFiles[activeFile.id]}
+                                src={activeFile.settings.convertedUrl}
                                 alt="Converted Preview"
                                 loading="lazy"
                                 className="max-w-full max-h-full object-contain pointer-events-none drop-shadow-sm border border-slate-200"
@@ -414,17 +392,17 @@ export default function ConvertTool() {
                                 </label>
                                 <input
                                     type="color"
-                                    value={activeFile.settings?.backgroundColor === 'transparent' ? '#ffffff' : activeFile.settings?.backgroundColor}
+                                    value={(!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === 'transparent') ? '#ffffff' : activeFile.settings.backgroundColor}
                                     onChange={(e) => handleSettingChange("backgroundColor", e.target.value)}
-                                    disabled={activeFile.settings?.backgroundColor === 'transparent'}
-                                    className="h-8 w-12 cursor-pointer border-none bg-transparent rounded-lg"
+                                    disabled={!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === 'transparent'}
+                                    className={`h-8 w-12 cursor-pointer border-none bg-transparent rounded-lg ${(!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === 'transparent') ? 'opacity-30' : ''}`}
                                 />
                                 {["png", "webp", "gif"].includes(activeFile.settings?.targetFormat) && (
                                     <button
-                                        onClick={() => handleSettingChange("backgroundColor", activeFile.settings?.backgroundColor === "transparent" ? "#FFFFFF" : "transparent")}
-                                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${activeFile.settings?.backgroundColor === "transparent" ? "bg-[#0081C9]/10 text-[#0081C9]" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"}`}
+                                        onClick={() => handleSettingChange("backgroundColor", (!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === "transparent") ? "#FFFFFF" : "transparent")}
+                                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${(!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === "transparent") ? "bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZTVlNWU1IiAvPgo8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZTVlNWU1IiAvPgogICAgPC9zdmc+')] bg-repeat text-[#0081C9] border border-[#0081C9]/30 ring-2 ring-[#0081C9] ring-offset-1" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"}`}
                                     >
-                                        Transparent
+                                        <span className={(!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === "transparent") ? "bg-white/80 px-1 rounded-sm" : ""}>Transparent</span>
                                     </button>
                                 )}
                             </div>

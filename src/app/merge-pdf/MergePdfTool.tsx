@@ -12,6 +12,7 @@ import { generatePdfPreview } from "@/lib/pdf-processing/pdf-preview";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { PdfPageGallery, PdfPageThumb } from "@/components/tools/PdfPageGallery";
 import { PdfMergeSeo } from "@/components/seo/SeoContentBlocks";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 
 export default function MergePdfTool() {
     const {
@@ -27,10 +28,57 @@ export default function MergePdfTool() {
         updateFileSettings
     } = useFileUpload([]);
 
-    const [isProcessing, setIsProcessing] = useState(false);
     const [mergedUrl, setMergedUrl] = useState<string | null>(null);
-    const [mergedBlob, setMergedBlob] = useState<Blob | null>(null);
     const [pageMetadata, setPageMetadata] = useState<PdfPageThumb[]>([]);
+
+    const { status, result: mergedBlob, error, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<Blob>({
+        processFn: async (targetFiles, onProgress) => {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const payloadFiles = [];
+                    for (let i = 0; i < targetFiles.length; i++) {
+                        const file = targetFiles[i];
+                        const fileState = files[i]; // Reference indexed outer file details
+                        const arrayBuffer = await file.arrayBuffer();
+                        const filePages = pageMetadata.filter(p => p.fileId === fileState.id && !p.deleted);
+        
+                        const allPages = pageMetadata.length === 0;
+                        filePages.sort((a, b) => a.pageNum - b.pageNum);
+        
+                        payloadFiles.push({
+                            buffer: arrayBuffer,
+                            allPages,
+                            pages: filePages.map(p => ({ pageNum: p.pageNum, rotation: p.rotation }))
+                        });
+                    }
+        
+                    const worker = new Worker(new URL('../../workers/pdf.worker.ts', import.meta.url));
+        
+                    worker.onmessage = (e) => {
+                        if (e.data.type === 'SUCCESS') {
+                            const blob = new Blob([e.data.payload.buffer], { type: "application/pdf" });
+                            resolve(blob);
+                        } else if (e.data.type === 'ERROR') {
+                            reject(new Error(e.data.payload.error));
+                        }
+                        worker.terminate();
+                    };
+        
+                    worker.onerror = (err) => {
+                        reject(new Error("Failed to initialize merge worker."));
+                        worker.terminate();
+                    };
+        
+                    worker.postMessage({
+                        type: 'MERGE',
+                        payload: { files: payloadFiles }
+                    });
+                } catch (err) {
+                    reject(new Error("Failed to prepare PDFs for merging."));
+                }
+            });
+        }
+    });
 
     useEffect(() => {
         files.forEach(async (fileObj) => {
@@ -44,8 +92,24 @@ export default function MergePdfTool() {
         });
     }, [files, updatePreviewUrl, updateFileSettings]);
 
+    useEffect(() => {
+        if (status === 'completed' && mergedBlob && !mergedUrl) {
+            setMergedUrl(createSafeObjectURL(mergedBlob));
+            toast.success("PDFs merged successfully!");
+        } else if (status === 'error' && error) {
+            toast.error(error);
+        }
+    }, [status, mergedBlob, error, createSafeObjectURL, mergedUrl]);
+
     const handleUpload = (newFiles: File[]) => {
         addFiles(newFiles);
+        clearMemory();
+        setMergedUrl(null);
+    };
+
+    const handleClearAll = () => {
+        clearAll();
+        clearMemory();
         setMergedUrl(null);
     };
 
@@ -65,13 +129,13 @@ export default function MergePdfTool() {
         },
         maxSize: UPLOAD_LIMITS.MAX_FILE_SIZE_BYTES,
         onDropRejected: (rejectedFiles) => {
-            const error = rejectedFiles[0]?.errors[0];
-            if (error?.code === "file-too-large") {
+            const err = rejectedFiles[0]?.errors[0];
+            if (err?.code === "file-too-large") {
                 toast.error(`File is too large. Max size is ${UPLOAD_LIMITS.MAX_FILE_SIZE_MB}MB.`);
-            } else if (error?.code === "file-invalid-type") {
+            } else if (err?.code === "file-invalid-type") {
                 toast.error("Invalid file type. Please upload a PDF file.");
             } else {
-                toast.error(`Error: ${error?.message || "File rejected"}`);
+                toast.error(`Error: ${err?.message || "File rejected"}`);
             }
         }
     });
@@ -88,6 +152,7 @@ export default function MergePdfTool() {
             [newFiles[index], newFiles[targetIndex]] = [newFiles[targetIndex], newFiles[index]];
             return newFiles;
         });
+        clearMemory();
         setMergedUrl(null);
     };
 
@@ -105,6 +170,7 @@ export default function MergePdfTool() {
             newFiles.splice(destinationIndex, 0, movedFile);
             return newFiles;
         });
+        clearMemory();
         setMergedUrl(null);
         setActiveIndex(destinationIndex);
     };
@@ -114,76 +180,23 @@ export default function MergePdfTool() {
             toast.error("Please select at least 2 PDF files to merge.");
             return;
         }
-
-        setIsProcessing(true);
-        try {
-            const payloadFiles = [];
-            for (const fileState of files) {
-                const arrayBuffer = await fileState.file.arrayBuffer();
-                const filePages = pageMetadata.filter(p => p.fileId === fileState.id && !p.deleted);
-
-                const allPages = pageMetadata.length === 0;
-
-                // Ensure original document order
-                filePages.sort((a, b) => a.pageNum - b.pageNum);
-
-                payloadFiles.push({
-                    buffer: arrayBuffer,
-                    allPages,
-                    pages: filePages.map(p => ({ pageNum: p.pageNum, rotation: p.rotation }))
-                });
-            }
-
-            const worker = new Worker(new URL('../../workers/pdf.worker.ts', import.meta.url));
-
-            worker.onmessage = (e) => {
-                if (e.data.type === 'SUCCESS') {
-                    const blob = new Blob([e.data.payload.buffer], { type: "application/pdf" });
-                    const url = URL.createObjectURL(blob);
-                    setMergedBlob(blob);
-                    setMergedUrl(url); // Kept for previews
-                    toast.success("PDFs merged successfully!");
-                } else if (e.data.type === 'ERROR') {
-                    toast.error(e.data.payload.error);
-                }
-                setIsProcessing(false);
-                worker.terminate();
-            };
-
-            worker.onerror = (error) => {
-                toast.error("Failed to initialize merge worker.");
-                setIsProcessing(false);
-                worker.terminate();
-            };
-
-            worker.postMessage({
-                type: 'MERGE',
-                payload: { files: payloadFiles }
-            });
-
-        } catch (error) {
-            toast.error("Failed to prepare PDFs for merging.");
-            setIsProcessing(false);
-        }
+        processFiles(files.map(f => f.file));
     };
 
     const downloadFile = async () => {
-        if (!mergedBlob) return;
+        if (!mergedUrl) return;
 
         try {
-            const blobUrl = URL.createObjectURL(mergedBlob);
-
             const link = document.createElement("a");
             link.style.display = "none";
-            link.href = blobUrl;
+            link.href = mergedUrl;
             link.download = `merged_document_${new Date().getTime()}.pdf`;
             document.body.appendChild(link);
             link.click();
             setTimeout(() => {
                 document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
             }, 100);
-        } catch (error) {
+        } catch (err) {
             toast.error("Failed to download merged PDF safely.");
         }
     };
@@ -217,7 +230,7 @@ export default function MergePdfTool() {
 
             <ToolModal
                 isOpen={files.length > 0}
-                onClose={clearAll}
+                onClose={handleClearAll}
                 hidePreviewPane={false}
                 title="Merge PDF"
                 files={files}
@@ -239,8 +252,12 @@ export default function MergePdfTool() {
                         )}
                     </span>
                 }
-                isProcessing={isProcessing}
+                isProcessing={status === 'processing'}
                 isPrimaryDisabled={files.length < 2 && !mergedUrl}
+                isSuccess={status === 'completed' && !!mergedUrl}
+                onDownload={downloadFile}
+                onStartOver={handleClearAll}
+                onWipeMemory={clearMemory}
                 customPreview={<PdfPageGallery files={files} onPageStateChange={setPageMetadata} />}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}

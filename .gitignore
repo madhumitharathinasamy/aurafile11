@@ -88,3 +88,5 @@ test-*.js
 generate-test-*.js
 extract_icons.js
 refactor_typography.js
+
+certificates

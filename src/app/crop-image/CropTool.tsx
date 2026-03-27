@@ -15,6 +15,7 @@ import { ToolModal } from "@/components/modal/ToolModal";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "sonner";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { ToolSettingsRenderer, SettingGroup, SettingRow } from "@/components/tools/ToolSettingsRenderer";
 import { saveAs } from "file-saver";
 
@@ -63,35 +64,52 @@ export default function CropTool() {
     const [isCircular, setIsCircular] = useState(false);
     const [showGrid, setShowGrid] = useState(true);
 
-    const [isProcessing, setIsProcessing] = useState(false);
     const [applyToAll, setApplyToAll] = useState(false);
-    const [croppedUrls, setCroppedUrls] = useState<{ [id: string]: string }>({});
-    const [croppedBlobs, setCroppedBlobs] = useState<{ [id: string]: Blob }>({});
+
+    const { status, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<number>({
+        processFn: async (targetFiles: File[], onProgress: (progress: number) => void) => {
+            return new Promise(async (resolve, reject) => {
+                if (!completedCrop || !imgRef.current || !activeFile) {
+                    return reject("Missing crop initialization");
+                }
+                try {
+                    const percentCrop = convertToPercentCrop(completedCrop, imgRef.current.width, imgRef.current.height);
+                    const filesToProcess = applyToAll ? files : [activeFile];
+                    let successCount = 0;
+
+                    for (let i = 0; i < filesToProcess.length; i++) {
+                        const fileMeta = filesToProcess[i];
+                        const cropParams = applyToAll ? { ...percentCrop, unit: '%' as const } : { ...completedCrop! as any, unit: 'px' as const };
+                        const source = (fileMeta.id === activeFile.id) ? imgRef.current : fileMeta.file;
+
+                        const result = await canvasUtils(source, cropParams, rotate, { horizontal: flipH, vertical: flipV }, isCircular);
+
+                        if (result) {
+                            const blobUrl = createSafeObjectURL(result.blob);
+                            updateFileSettings(fileMeta.id, { isCropped: true, croppedUrl: blobUrl, croppedBlob: result.blob });
+                            successCount++;
+                        }
+                        onProgress(((i + 1) / filesToProcess.length) * 100);
+                    }
+                    
+                    toast.success("Crop applied successfully! Ready to download.");
+                    resolve(successCount);
+                } catch (error) {
+                    toast.error("Failed to crop image(s).");
+                    reject(error);
+                }
+            });
+        }
+    });
 
     // Local inputs mapping
     const [widthInput, setWidthInput] = useState("");
     const [heightInput, setHeightInput] = useState("");
     const [isInputActive, setIsInputActive] = useState(false);
 
-    const croppedUrlsRef = useRef(croppedUrls);
-    useEffect(() => {
-        croppedUrlsRef.current = croppedUrls;
-    }, [croppedUrls]);
-
-    // Cleanup URLs
-    useEffect(() => {
-        return () => {
-            Object.values(croppedUrlsRef.current).forEach(url => URL.revokeObjectURL(url));
-        };
-    }, []);
-
     // Synchronize settings when switching active files
-    // If we wanted true per-file persistence of crop boxes, we'd load them from activeFile.settings here.
-    // For simplicity and standard batch tool flow, we let the user manipulate the active one and choose to apply it globally or just export it.
     useEffect(() => {
         if (activeFile && imgRef.current) {
-            // Re-trigger load to calculate default crop for this new active file
-            // if we don't have a crop yet
             if (!crop) {
                 const { width, height, naturalWidth, naturalHeight } = imgRef.current;
                 if (width && height) {
@@ -125,25 +143,12 @@ export default function CropTool() {
     }, [completedCrop, scale, isInputActive]);
 
     const handleUpload = (uploadedFiles: File[]) => {
-        setCroppedUrls(prev => {
-            Object.values(prev).forEach(url => URL.revokeObjectURL(url));
-            return {};
-        });
-        setCroppedBlobs({});
-
         const uniqueFiles = uploadedFiles.filter(newFile =>
             !files.some(existing => existing.file.name === newFile.name && existing.file.size === newFile.size)
         );
 
-        // Ensure default settings are applied properly, including isCropped
-        const enrichedFiles = uniqueFiles.map(file => ({
-            file,
-            settings: { isCropped: false }
-        }));
+        addFiles(uniqueFiles, { isCropped: false, croppedUrl: null, croppedBlob: null });
 
-        addFiles(uniqueFiles, { isCropped: false });
-
-        // Reset crop settings on new generic upload if list was empty
         if (files.length === 0) {
             setCrop(undefined);
             setCompletedCrop(undefined);
@@ -156,27 +161,18 @@ export default function CropTool() {
         }
     };
 
+    const handleClearAll = () => {
+        clearAll();
+        clearMemory();
+    };
+
     const handleSettingChange = (updates: any) => {
         if (!activeFile) return;
 
-        setCroppedUrls(prev => {
-            const newUrls = { ...prev };
-            if (applyToAll && files.length > 1) {
-                Object.values(newUrls).forEach(url => URL.revokeObjectURL(url));
-                setCroppedBlobs({});
-                return {};
-            } else if (newUrls[activeFile.id]) {
-                URL.revokeObjectURL(newUrls[activeFile.id]);
-                delete newUrls[activeFile.id];
-                setCroppedBlobs(b => { const nb = { ...b }; delete nb[activeFile.id]; return nb; });
-            }
-            return newUrls;
-        });
-
         if (applyToAll && files.length > 1) {
-            updateAllFileSettings({ ...updates, isCropped: false });
+            updateAllFileSettings({ ...updates, isCropped: false, croppedUrl: null, croppedBlob: null });
         } else {
-            updateFileSettings(activeFile.id, { ...updates, isCropped: false });
+            updateFileSettings(activeFile.id, { ...updates, isCropped: false, croppedUrl: null, croppedBlob: null });
         }
     };
 
@@ -368,53 +364,8 @@ export default function CropTool() {
 
     const performCrop = async () => {
         if (!completedCrop || !imgRef.current || !activeFile) return;
-        setIsProcessing(true);
-
-        // Clear previous urls
-        setCroppedUrls(prev => {
-            Object.values(prev).forEach(url => URL.revokeObjectURL(url));
-            return {};
-        });
-
-        try {
-            const newUrls: { [id: string]: string } = {};
-            const newBlobs: { [id: string]: Blob } = {};
-
-            // To apply to all files of varying sizes, we must convert the current pixel crop to a percentage crop
-            const percentCrop = convertToPercentCrop(completedCrop, imgRef.current.width, imgRef.current.height);
-
-            const filesToProcess = applyToAll ? files : [activeFile];
-
-            for (const fileMeta of filesToProcess) {
-                // Determine whether to use absolute pixels (exact same bounding box) or percentage.
-                // Percentage is vastly safer for batching images of different sizes.
-                const cropParams = applyToAll
-                    ? { ...percentCrop, unit: '%' as const }
-                    : { ...completedCrop, unit: 'px' as const };
-
-                // If single file processing, we can use imgRef directly to save a reload.
-                // But for safety and consistency, we'll re-load if it's not the active one.
-                const source = (fileMeta.id === activeFile.id) ? imgRef.current : fileMeta.file;
-
-                const result = await canvasUtils(source, cropParams, rotate, { horizontal: flipH, vertical: flipV }, isCircular);
-
-                if (result) {
-                    newUrls[fileMeta.id] = result.url;
-                    newBlobs[fileMeta.id] = result.blob;
-                    updateFileSettings(fileMeta.id, { isCropped: true });
-                } else {
-                }
-            }
-
-            setCroppedUrls(prev => ({ ...prev, ...newUrls }));
-            setCroppedBlobs(prev => ({ ...prev, ...newBlobs }));
-            toast.success("Crop applied successfully! Ready to download.");
-
-        } catch (error) {
-            toast.error("Failed to crop image.");
-        } finally {
-            setIsProcessing(false);
-        }
+        const filesToProcess = applyToAll ? files : [activeFile];
+        processFiles(filesToProcess.map(f => f.file));
     };
 
     const handleDownload = async () => {
@@ -423,8 +374,8 @@ export default function CropTool() {
                 const JSZip = (await import("jszip")).default;
                 const zip = new JSZip();
                 const promises = files.map(async (fileMeta) => {
-                    if (!fileMeta.settings?.isCropped || !croppedBlobs[fileMeta.id]) return;
-                    const blob = croppedBlobs[fileMeta.id];
+                    if (!fileMeta.settings?.isCropped || !fileMeta.settings.croppedBlob) return;
+                    const blob = fileMeta.settings.croppedBlob;
 
                     const originalName = fileMeta.file.name.substring(0, fileMeta.file.name.lastIndexOf('.')) || fileMeta.file.name;
                     const ext = fileMeta.file.type.split('/')[1] || "jpg";
@@ -435,8 +386,8 @@ export default function CropTool() {
                 const content = await zip.generateAsync({ type: "blob" });
                 saveAs(content, "aurafile-cropped.zip");
                 toast.success("Downloaded ZIP file!");
-            } else if (activeFile && activeFile.settings?.isCropped && croppedBlobs[activeFile.id]) {
-                const blob = croppedBlobs[activeFile.id];
+            } else if (activeFile && activeFile.settings?.isCropped && activeFile.settings.croppedBlob) {
+                const blob = activeFile.settings.croppedBlob;
 
                 const originalName = activeFile.file.name.substring(0, activeFile.file.name.lastIndexOf('.')) || activeFile.file.name;
                 const ext = activeFile.file.type.split('/')[1] || "jpg";
@@ -447,8 +398,8 @@ export default function CropTool() {
         }
     };
 
-    const isAllReady = applyToAll && files.length > 0 && files.every(f => croppedUrls[f.id]);
-    const isCurrentReady = !applyToAll && activeFile && croppedUrls[activeFile.id];
+    const isAllReady = applyToAll && files.length > 0 && files.every(f => f.settings?.croppedUrl);
+    const isCurrentReady = !applyToAll && activeFile?.settings?.croppedUrl;
 
     const handlePrimaryAction = () => {
         if (isAllReady || isCurrentReady) {
@@ -459,7 +410,7 @@ export default function CropTool() {
     };
 
     const getPrimaryActionText = () => {
-        if (isProcessing) return "Processing...";
+        if (status === 'processing') return "Processing...";
         if (isAllReady) return `Download All (${files.length} Zipped)`;
         if (isCurrentReady) return "Download Image";
         return applyToAll && files.length > 1 ? `Crop All (${files.length})` : "Apply Crop";
@@ -468,10 +419,10 @@ export default function CropTool() {
     // Override the custom Left Stage preview to use ReactCrop directly
     const customPreview = activeFile ? (
         <div className="w-full h-full flex flex-col items-center justify-center p-4">
-            {croppedUrls[activeFile.id] ? (
+            {activeFile.settings?.croppedUrl ? (
                 <div className="relative flex items-center justify-center max-w-full max-h-[60vh] md:max-h-[80%] shadow-md drop-shadow-sm border border-slate-200 bg-[linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa),linear-gradient(45deg,#f8f9fa_25%,transparent_25%,transparent_75%,#f8f9fa_75%,#f8f9fa)] bg-white bg-[length:20px_20px] bg-[position:0_0,10px_10px]">
                     <img
-                        src={croppedUrls[activeFile.id]}
+                        src={activeFile.settings.croppedUrl}
                         alt="Cropped Result"
                         loading="lazy"
                         className="max-h-[60vh] md:max-h-[80%] pointer-events-none"
@@ -511,8 +462,8 @@ export default function CropTool() {
             )}
 
             {/* Quick Stats Overlay & Download Status */}
-            <div className={`absolute bottom-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm text-xs font-semibold flex items-center gap-3 z-10 transition-all ${croppedUrls[activeFile.id] ? 'text-green-600' : 'text-slate-700'}`}>
-                {croppedUrls[activeFile.id] ? (
+            <div className={`absolute bottom-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm text-xs font-semibold flex items-center gap-3 z-10 transition-all ${activeFile.settings?.croppedUrl ? 'text-green-600' : 'text-slate-700'}`}>
+                {activeFile.settings?.croppedUrl ? (
                     <><Icon name="check-circle" size={14} className="inline mr-1" /> Cropped Successfully</>
                 ) : (
                     <>
@@ -553,7 +504,11 @@ export default function CropTool() {
                         {getPrimaryActionText()}
                     </span>
                 }
-                isProcessing={isProcessing}
+                isProcessing={status === 'processing'}
+                isSuccess={(applyToAll && files.length > 1) ? isAllReady : isCurrentReady}
+                onDownload={handleDownload}
+                onStartOver={clearAll}
+                onWipeMemory={() => { clearAll(); clearMemory(); }}
                 customPreview={customPreview}
             >
                 {activeFile && (

@@ -9,6 +9,7 @@ import { analyzePdf } from "@/lib/pdf-processing/pdf-analyzer";
 import { convertPdfToDocx } from "@/lib/pdf-processing/pdf-to-docx";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { generatePdfPreview } from "@/lib/pdf-processing/pdf-preview";
+import { useFileProcessor } from "@/hooks/useFileProcessor";
 
 export default function PdfToWordTool() {
     const {
@@ -23,7 +24,6 @@ export default function PdfToWordTool() {
     } = useFileUpload([]);
 
     // 2. Local Processing State
-    const [isConverting, setIsConverting] = useState(false);
     const [useOcr, setUseOcr] = useState(false);
     const [outputFormat, setOutputFormat] = useState<'docx' | 'txt'>('docx');
 
@@ -42,10 +42,51 @@ export default function PdfToWordTool() {
     // Reset processing state if all files are removed (e.g. user closed modal during conversion)
     useEffect(() => {
         if (files.length === 0) {
-            setIsConverting(false);
             setUseOcr(false);
         }
     }, [files.length]);
+
+    const { status: processorStatus, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<number>({
+        processFn: async (targetFiles: File[], onProgress: (progress: number) => void) => {
+            return new Promise(async (resolve) => {
+                let successCount = 0;
+
+                const batchMeta = targetFiles.map(f => files.find(meta => meta.file === f)).filter(Boolean) as any[];
+
+                for (let i = 0; i < batchMeta.length; i++) {
+                    const fileMeta = batchMeta[i];
+                    updateFileSettings(fileMeta.id, { status: 'converting', progress: 0 });
+
+                    try {
+                        const shouldOcr = useOcr || (fileMeta.settings?.isScanned ?? false);
+
+                        const blob = await convertPdfToDocx(fileMeta.file, {
+                            useOcr: shouldOcr,
+                            onProgress: (p) => updateFileSettings(fileMeta.id, { progress: p })
+                        });
+
+                        const url = createSafeObjectURL(blob);
+
+                        updateFileSettings(fileMeta.id, {
+                            status: 'complete',
+                            progress: 100,
+                            resultUrl: url,
+                            resultBlob: blob
+                        });
+
+                        successCount++;
+                        toast.success(`Converted ${fileMeta.file.name}`);
+                    } catch (err: any) {
+                        updateFileSettings(fileMeta.id, { status: 'error', error: err.message || "Conversion failed" });
+                        toast.error(`Failed to convert ${fileMeta.file.name}`);
+                    }
+                    onProgress(((i + 1) / batchMeta.length) * 100);
+                }
+                
+                resolve(successCount);
+            });
+        }
+    });
 
     const handleUpload = async (uploadedFiles: File[]) => {
         // Enforce maximum 5 files batch limit for PDF conversion
@@ -90,40 +131,10 @@ export default function PdfToWordTool() {
 
     const handleConvert = async () => {
         if (files.length === 0) return;
-        setIsConverting(true);
 
         const filesToProcess = files.filter(f => f.settings?.status === 'idle' || f.settings?.status === 'complete' || !f.settings?.status);
-
-        try {
-            for (const file of filesToProcess) {
-                updateFileSettings(file.id, { status: 'converting', progress: 0 });
-
-                try {
-                    const shouldOcr = useOcr || (file.settings?.isScanned ?? false);
-
-                    const blob = await convertPdfToDocx(file.file, {
-                        useOcr: shouldOcr,
-                        onProgress: (p) => updateFileSettings(file.id, { progress: p })
-                    });
-
-                    const url = URL.createObjectURL(blob);
-
-                    updateFileSettings(file.id, {
-                        status: 'complete',
-                        progress: 100,
-                        resultUrl: url,
-                        resultBlob: blob
-                    });
-
-                    toast.success(`Converted ${file.file.name}`);
-
-                } catch (err: any) {
-                    updateFileSettings(file.id, { status: 'error', error: err.message || "Conversion failed" });
-                    toast.error(`Failed to convert ${file.file.name}`);
-                }
-            }
-        } finally {
-            setIsConverting(false);
+        if (filesToProcess.length > 0) {
+            processFiles(filesToProcess.map(f => f.file));
         }
     };
 
@@ -140,24 +151,21 @@ export default function PdfToWordTool() {
     const isDone = files.length > 0 && files.every(f => f.settings?.status === 'complete');
 
     const downloadAll = async () => {
-        const completedFiles = files.filter(f => f.settings?.status === 'complete' && f.settings?.resultBlob);
+        const completedFiles = files.filter(f => f.settings?.status === 'complete' && f.settings?.resultUrl);
         if (completedFiles.length === 0) return;
 
         try {
             for (const file of completedFiles) {
-                const blobUrl = URL.createObjectURL(file.settings.resultBlob);
                 const link = document.createElement("a");
                 link.style.display = "none";
-                link.href = blobUrl;
+                link.href = file.settings.resultUrl;
                 link.download = `${file.file.name.replace('.pdf', '')}.docx`;
                 document.body.appendChild(link);
                 link.click();
 
-                // Allow browser time to trigger download before revoke
+                // Allow browser time to trigger download
                 await new Promise(resolve => setTimeout(resolve, 300));
-
                 document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
             }
         } catch (error) {
             toast.error("Failed to download converted Documents.");
@@ -184,7 +192,10 @@ export default function PdfToWordTool() {
 
             <ToolModal
                 isOpen={files.length > 0}
-                onClose={clearAll}
+                onClose={() => {
+                    clearAll();
+                    clearMemory();
+                }}
                 hidePreviewPane={false}
                 title="Convert PDF to Word"
                 files={files}
@@ -206,7 +217,11 @@ export default function PdfToWordTool() {
                         )}
                     </span>
                 }
-                isProcessing={isConverting}
+                isProcessing={processorStatus === 'processing'}
+                isSuccess={isDone}
+                onDownload={downloadAll}
+                onStartOver={clearAll}
+                onWipeMemory={() => { clearAll(); clearMemory(); }}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (
