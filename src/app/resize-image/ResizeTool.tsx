@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: ResizeSettings = {
     format: "original",
     quality: 90,
     resampling: "lanczos3",
-    fillBackground: "#FFFFFF",
+    fillBackground: "transparent",
     anchor: "center",
     preserveMetadata: true
 };
@@ -94,7 +94,7 @@ export default function ResizeTool() {
                     resolve(successCount);
                 } catch (error) {
                     toast.error("Failed to resize images. Please try again.");
-                    reject();
+                    reject(new Error("Failed to resize images. Please try again."));
                 }
             });
         }
@@ -307,6 +307,10 @@ export default function ResizeTool() {
                     </span>
                 }
                 isProcessing={status === 'processing'}
+                isSuccess={(applyToAll && files.length > 1) ? isAllReady : isCurrentReady}
+                onDownload={handleDownload}
+                onStartOver={clearAll}
+                onWipeMemory={handleClearAll}
                 customPreview={customPreview}
             >
                 {activeFile && (
@@ -451,15 +455,16 @@ export default function ResizeTool() {
                                 </label>
                                 <input
                                     type="color"
-                                    value={activeFile.settings?.fillBackground || "#FFFFFF"}
+                                    value={(!activeFile.settings?.fillBackground || activeFile.settings?.fillBackground === 'transparent') ? "#ffffff" : activeFile.settings.fillBackground}
                                     onChange={(e) => handleSettingChange("fillBackground", e.target.value)}
-                                    className="h-8 w-12 cursor-pointer border-none bg-transparent rounded-lg"
+                                    disabled={!activeFile.settings?.fillBackground || activeFile.settings?.fillBackground === 'transparent'}
+                                    className={`h-8 w-12 cursor-pointer border-none bg-transparent rounded-lg ${(!activeFile.settings?.fillBackground || activeFile.settings?.fillBackground === 'transparent') ? 'opacity-30' : ''}`}
                                 />
                                 <button
-                                    onClick={() => handleSettingChange("fillBackground", "transparent")}
-                                    className="text-xs text-muted-foreground hover:text-slate-800 px-2 py-1 rounded"
+                                    onClick={() => handleSettingChange("fillBackground", (!activeFile.settings?.fillBackground || activeFile.settings?.fillBackground === "transparent") ? "#FFFFFF" : "transparent")}
+                                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${(!activeFile.settings?.fillBackground || activeFile.settings?.fillBackground === "transparent") ? "bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZTVlNWU1IiAvPgo8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZTVlNWU1IiAvPgogICAgPC9zdmc+')] bg-repeat text-[#0081C9] border border-[#0081C9]/30 ring-2 ring-[#0081C9] ring-offset-1" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"}`}
                                 >
-                                    Transparent
+                                    <span className={(!activeFile.settings?.fillBackground || activeFile.settings?.fillBackground === "transparent") ? "bg-white/80 px-1 rounded-sm" : ""}>Transparent</span>
                                 </button>
                             </div>
                         </SettingGroup>

@@ -505,6 +505,10 @@ export default function CropTool() {
                     </span>
                 }
                 isProcessing={status === 'processing'}
+                isSuccess={(applyToAll && files.length > 1) ? isAllReady : isCurrentReady}
+                onDownload={handleDownload}
+                onStartOver={clearAll}
+                onWipeMemory={() => { clearAll(); clearMemory(); }}
                 customPreview={customPreview}
             >
                 {activeFile && (

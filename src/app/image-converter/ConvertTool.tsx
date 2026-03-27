@@ -293,6 +293,15 @@ export default function ConvertTool() {
                     </span>
                 }
                 isProcessing={status === 'processing'}
+                isSuccess={(applyToAll && isBatchMode) ? isAllConverted : isCurrentFileConverted}
+                onDownload={() => {
+                    if (applyToAll && isBatchMode) downloadAll();
+                    else if (activeFile && activeFile.settings?.convertedBlob) {
+                        downloadFile(activeFile.file.name, activeFile.settings.convertedBlob, activeFile.settings.targetFormat);
+                    }
+                }}
+                onStartOver={handleClearAll}
+                onWipeMemory={clearMemory}
                 customPreview={
                     isCurrentFileConverted ? (
                         <div className="w-full h-full p-4 md:p-8 flex items-center justify-center relative">
@@ -383,17 +392,17 @@ export default function ConvertTool() {
                                 </label>
                                 <input
                                     type="color"
-                                    value={activeFile.settings?.backgroundColor === 'transparent' ? '#ffffff' : activeFile.settings?.backgroundColor}
+                                    value={(!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === 'transparent') ? '#ffffff' : activeFile.settings.backgroundColor}
                                     onChange={(e) => handleSettingChange("backgroundColor", e.target.value)}
-                                    disabled={activeFile.settings?.backgroundColor === 'transparent'}
-                                    className="h-8 w-12 cursor-pointer border-none bg-transparent rounded-lg"
+                                    disabled={!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === 'transparent'}
+                                    className={`h-8 w-12 cursor-pointer border-none bg-transparent rounded-lg ${(!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === 'transparent') ? 'opacity-30' : ''}`}
                                 />
                                 {["png", "webp", "gif"].includes(activeFile.settings?.targetFormat) && (
                                     <button
-                                        onClick={() => handleSettingChange("backgroundColor", activeFile.settings?.backgroundColor === "transparent" ? "#FFFFFF" : "transparent")}
-                                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${activeFile.settings?.backgroundColor === "transparent" ? "bg-[#0081C9]/10 text-[#0081C9]" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"}`}
+                                        onClick={() => handleSettingChange("backgroundColor", (!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === "transparent") ? "#FFFFFF" : "transparent")}
+                                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${(!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === "transparent") ? "bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZTVlNWU1IiAvPgo8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZTVlNWU1IiAvPgogICAgPC9zdmc+')] bg-repeat text-[#0081C9] border border-[#0081C9]/30 ring-2 ring-[#0081C9] ring-offset-1" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"}`}
                                     >
-                                        Transparent
+                                        <span className={(!activeFile.settings?.backgroundColor || activeFile.settings?.backgroundColor === "transparent") ? "bg-white/80 px-1 rounded-sm" : ""}>Transparent</span>
                                     </button>
                                 )}
                             </div>

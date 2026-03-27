@@ -218,6 +218,10 @@ export default function PdfToWordTool() {
                     </span>
                 }
                 isProcessing={processorStatus === 'processing'}
+                isSuccess={isDone}
+                onDownload={downloadAll}
+                onStartOver={clearAll}
+                onWipeMemory={() => { clearAll(); clearMemory(); }}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (

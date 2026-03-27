@@ -3,6 +3,93 @@ import { createPortal } from 'react-dom';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
+import { PrivacyShield } from '@/components/shared/PrivacyShield';
+
+// Helper Success Dashboard Component
+const SuccessDashboard = ({ files, onWipeMemory }: { files: any[], onWipeMemory?: () => void }) => {
+    const [wiped, setWiped] = useState(false);
+
+    // Calculate total savings
+    let totalOriginal = 0;
+    let totalNew = 0;
+    
+    files.forEach(f => {
+        totalOriginal += f.size || 0;
+        if (f.settings?.resultBlob) {
+            totalNew += f.settings.resultBlob.size;
+        } else if (f.settings?.resizedBlob) {
+            totalNew += f.settings.resizedBlob.size;
+        } else if (f.settings?.compressedBlob) {
+            totalNew += f.settings.compressedBlob.size;
+        } else if (f.settings?.unlockedBlob) {
+            totalNew += f.settings.unlockedBlob.size;
+        } else {
+            totalNew += f.size || 0; 
+        }
+    });
+
+    const isSmaller = totalNew > 0 && totalNew < totalOriginal;
+    const savingsPercent = isSmaller ? Math.round((1 - (totalNew / totalOriginal)) * 100) : 0;
+
+    const handleWipe = () => {
+        if (onWipeMemory) onWipeMemory();
+        setWiped(true);
+    };
+
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center space-y-6 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="relative">
+                <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20"></div>
+                <div className="bg-green-100 text-green-600 rounded-full p-4 isolate shadow-sm border border-green-200">
+                    <Icon name="check-circle" size={48} className="animate-[bounce_0.5s_ease-out]" />
+                </div>
+            </div>
+            
+            <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Success!</h3>
+                <p className="text-slate-500 text-sm">Your files have been processed locally.</p>
+            </div>
+
+            {isSmaller && (
+                <div className="bg-[#F1F5F9] border border-slate-200 rounded-xl p-4 w-full flex items-center justify-between shadow-sm">
+                    <div className="text-left">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Savings</p>
+                        <p className="text-slate-800 font-medium text-sm">
+                            {(totalOriginal / 1024 / 1024).toFixed(2)} MB <Icon name="arrow-right" size={14} className="inline text-slate-300 mx-1" /> {(totalNew / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                    </div>
+                    <div className="bg-green-100 text-green-700 font-bold px-3 py-1.5 rounded-lg text-sm border border-green-200 shadow-sm">
+                        {savingsPercent}%
+                    </div>
+                </div>
+            )}
+
+            <div className="mt-8 w-full pt-4">
+                <div className="h-px bg-slate-200 mb-6 w-full"></div>
+                <div className="text-left space-y-3">
+                    <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <Icon name="shield-check" size={18} className="text-[#0081C9]" />
+                        Zero-Trust Security
+                    </p>
+                    <p className="text-[13px] text-slate-500 leading-relaxed font-medium">
+                        Your files were never uploaded. To instantly free up your browser's RAM, wipe the session memory below.
+                    </p>
+                    <button 
+                        onClick={handleWipe}
+                        disabled={wiped}
+                        className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all shadow-sm ${wiped ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 hover:border-red-300'}`}
+                    >
+                        {wiped ? (
+                            <><Icon name="check" size={16} /> Memory Wiped Successfully</>
+                        ) : (
+                            <><Icon name="trash-2" size={16} /> Wipe Session Memory</>
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 interface ToolModalProps {
     isOpen: boolean;
@@ -18,6 +105,12 @@ interface ToolModalProps {
     customPreview?: React.ReactNode; // Optional override for the Left Stage image preview
     hidePreviewPane?: boolean; // Hides the 55% left stage entirely
     isPrimaryDisabled?: boolean; // Allows explicitly disabling the primary action
+    
+    // Pro Success Dashboard Props
+    isSuccess?: boolean;
+    onDownload?: () => void;
+    onStartOver?: () => void;
+    onWipeMemory?: () => void;
 }
 
 export function ToolModal({
@@ -33,7 +126,11 @@ export function ToolModal({
     children,
     customPreview,
     hidePreviewPane = false,
-    isPrimaryDisabled = false
+    isPrimaryDisabled = false,
+    isSuccess = false,
+    onDownload,
+    onStartOver,
+    onWipeMemory
 }: ToolModalProps) {
     const [mounted, setMounted] = useState(false);
     const [zoom, setZoom] = useState<number>(100);
@@ -296,27 +393,56 @@ export function ToolModal({
                     <div className={`w-full flex-1 min-h-0 md:h-full ${hidePreviewPane ? 'md:w-full max-w-2xl mx-auto' : 'md:w-[35%] shrink-0'} flex flex-col bg-white overflow-hidden shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-10`}>
 
                         {/* Scrollable Tool Options */}
-                        <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-                            {children}
+                        <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
+                            {isSuccess ? (
+                                <SuccessDashboard files={files} onWipeMemory={onWipeMemory} />
+                            ) : (
+                                children
+                            )}
                         </div>
 
                         {/* Sticky Footer Action */}
-                        <div className="shrink-0 p-6 md:p-8 bg-white z-10 pt-2">
-                            <Button
-                                onClick={onPrimaryAction}
-                                disabled={isProcessing || isPrimaryDisabled}
-                                style={{ backgroundColor: '#0081C9' }}
-                                className="w-full h-12 text-base font-semibold text-white hover:opacity-90 shadow-md shadow-blue-500/10 rounded-lg transition-all"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <Icon name="loader-2" size={20} className="animate-spin mr-2" />
-                                        Processing...
-                                    </>
-                                ) : (
-                                    primaryActionText
-                                )}
-                            </Button>
+                        <div className="shrink-0 p-4 md:p-5 bg-white z-10 border-t border-slate-100 shadow-[0_-4px_10px_-5px_rgba(0,0,0,0.05)]">
+                            
+                            <div className="mb-3">
+                                <PrivacyShield />
+                            </div>
+
+                            {isSuccess ? (
+                                <div className="space-y-2.5">
+                                    <Button
+                                        onClick={onDownload || (() => {})}
+                                        style={{ backgroundColor: '#0081C9' }}
+                                        className="w-full h-11 text-sm md:text-base font-semibold text-white hover:opacity-90 shadow-md shadow-[#0081C9]/20 rounded-lg transition-all"
+                                    >
+                                        <Icon name="download" size={18} className="mr-2" />
+                                        Download Final Output
+                                    </Button>
+                                    <Button
+                                        onClick={onStartOver || onClose}
+                                        variant="outline"
+                                        className="w-full h-11 text-sm md:text-base font-semibold text-slate-700 hover:bg-slate-50 transition-all border-slate-200"
+                                    >
+                                        Start Over
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button
+                                    onClick={onPrimaryAction}
+                                    disabled={isProcessing || isPrimaryDisabled}
+                                    style={{ backgroundColor: '#0081C9' }}
+                                    className="w-full h-11 text-sm md:text-base font-semibold text-white hover:opacity-90 shadow-md shadow-blue-500/10 rounded-lg transition-all"
+                                >
+                                    {isProcessing ? (
+                                        <>
+                                            <Icon name="loader-2" size={18} className="animate-spin mr-2" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        primaryActionText
+                                    )}
+                                </Button>
+                            )}
                         </div>
 
                     </div>

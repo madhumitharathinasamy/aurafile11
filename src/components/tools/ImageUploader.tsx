@@ -55,7 +55,7 @@ export function ImageUploader({
                         const img = new Image();
                         await new Promise((resolve, reject) => {
                             img.onload = () => resolve(true);
-                            img.onerror = () => reject();
+                            img.onerror = () => reject(new Error("Failed to load image preview."));
                             img.src = url;
                         });
                         URL.revokeObjectURL(url);

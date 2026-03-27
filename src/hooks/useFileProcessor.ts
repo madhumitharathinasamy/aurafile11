@@ -86,7 +86,11 @@ export function useFileProcessor<TResult = Blob | File>({ processFn }: UseFilePr
       setStatus('completed');
     } catch (err: any) {
       console.error("Local file processing error:", err);
-      setError(err.message || "An error occurred during local file processing.");
+      const errorMessage = (err && typeof err === 'object' && err.message) 
+        ? err.message 
+        : (typeof err === 'string' ? err : "An error occurred during local file processing.");
+      
+      setError(errorMessage);
       setStatus('error');
       setProgress(0);
     }

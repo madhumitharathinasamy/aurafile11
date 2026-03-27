@@ -140,6 +140,10 @@ export default function ImageToPdfTool() {
                     </span>
                 }
                 isProcessing={status === 'processing'}
+                isSuccess={status === 'completed'}
+                onDownload={handleProcess}
+                onStartOver={handleClear}
+                onWipeMemory={handleClear}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (

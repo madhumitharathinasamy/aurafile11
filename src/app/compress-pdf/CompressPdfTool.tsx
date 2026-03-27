@@ -313,6 +313,11 @@ export default function CompressPdfTool() {
                     </span>
                 }
                 isProcessing={status === 'processing'}
+                isPrimaryDisabled={!currentActiveLevel && !isDone}
+                isSuccess={isDone}
+                onDownload={downloadFile}
+                onStartOver={clearAll}
+                onWipeMemory={handleClearAll}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (

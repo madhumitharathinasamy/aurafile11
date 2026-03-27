@@ -44,7 +44,7 @@ export default function Home() {
               <Button href="/#tools" className="rounded-lg bg-[#00B4D8] px-8 py-6 text-base font-bold text-white shadow-sm hover:bg-[#0096b7] transition-all w-full sm:w-auto">
                 {hero.ctaPrimary} <span className="ml-1">→</span>
               </Button>
-              <Button href="/#features" variant="outline" className="rounded-lg bg-white border-2 border-slate-200 px-8 py-6 text-base font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-all w-full sm:w-auto">
+              <Button href="/#features" variant="outline" className="rounded-lg bg-transparent border-2 border-[#00B4D8] px-8 py-6 text-base font-bold text-[#00B4D8] hover:bg-[#00B4D8]/10 transition-all w-full sm:w-auto">
                 {hero.ctaSecondary}
               </Button>
             </div>

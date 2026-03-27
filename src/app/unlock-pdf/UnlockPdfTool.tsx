@@ -57,7 +57,7 @@ export default function UnlockPdfTool() {
                         } else {
                             toast.error("Failed to unlock PDF. The file might be corrupted.");
                         }
-                        reject();
+                        reject(new Error("Failed to unlock PDF. Please check your password."));
                         return;
                     }
                     onProgress(((i + 1) / targetFiles.length) * 100);
@@ -177,6 +177,10 @@ export default function UnlockPdfTool() {
                     </span>
                 }
                 isProcessing={status === 'processing'}
+                isSuccess={isUnlocked}
+                onDownload={downloadFile}
+                onStartOver={clearAll}
+                onWipeMemory={handleClearAll}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
                 {activeFile && (

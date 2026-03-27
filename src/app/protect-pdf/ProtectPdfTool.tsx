@@ -197,6 +197,10 @@ export default function ProtectPdfTool() {
                     </span>
                 }
                 isProcessing={status === 'processing'}
+                isSuccess={isProtected}
+                onDownload={downloadFile}
+                onStartOver={clearAll}
+                onWipeMemory={handleClearAll}
                 customPreview={
                     <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-[#e3e7e9] bg-[radial-gradient(#d1d5db_1px,transparent_1px)] [background-size:16px_16px] relative overflow-hidden">
                         {activeFile?.previewUrl && (

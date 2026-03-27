@@ -230,7 +230,7 @@ export default function MergePdfTool() {
 
             <ToolModal
                 isOpen={files.length > 0}
-                onClose={clearAll}
+                onClose={handleClearAll}
                 hidePreviewPane={false}
                 title="Merge PDF"
                 files={files}
@@ -254,6 +254,10 @@ export default function MergePdfTool() {
                 }
                 isProcessing={status === 'processing'}
                 isPrimaryDisabled={files.length < 2 && !mergedUrl}
+                isSuccess={status === 'completed' && !!mergedUrl}
+                onDownload={downloadFile}
+                onStartOver={handleClearAll}
+                onWipeMemory={clearMemory}
                 customPreview={<PdfPageGallery files={files} onPageStateChange={setPageMetadata} />}
             >
                 {/* TOOL SPECIFIC SIDEBAR CONTENT */}
