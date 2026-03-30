@@ -9,6 +9,72 @@ import { ImageComparison } from "@/components/tools/ImageComparison";
 import { useFileUpload, type IntegratedFile } from "@/hooks/useFileUpload";
 import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { ToolSettingsRenderer, SettingGroup, SelectRow, SettingRow, ToggleRow } from "@/components/tools/ToolSettingsRenderer";
+import { isMobileBrowser, isIOS } from "@/lib/mobile-detection";
+
+// Mobile canvas fallback for when browser-image-compression fails
+const mobileCanvasFallback = async (file: File, options: any): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      
+      // Calculate dimensions with mobile-friendly limits
+      let { width, height } = img;
+      const MAX_DIMENSION = 2048; // Limit canvas size for mobile
+      
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+        width *= ratio;
+        height *= ratio;
+      }
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'));
+        return;
+      }
+      
+      // Handle background color for formats that don't support transparency
+      // Note: fileMeta is not available here, using default background
+      const formatNeedsBackground = ['jpeg', 'jpg'].includes(options.fileType?.split('/')[1] || '');
+      
+      if (formatNeedsBackground) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Convert to blob with mobile-friendly quality
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Canvas to Blob failed'));
+            return;
+          }
+          resolve(blob);
+        },
+        options.fileType || 'image/jpeg',
+        Math.max(options.quality || 0.8, 0.5) // Ensure minimum quality
+      );
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image for conversion'));
+    };
+    
+    img.src = url;
+  });
+};
 
 
 const ACCEPTED_EXTENSIONS = {
@@ -68,36 +134,200 @@ export default function ConvertTool() {
                 const totalBytes = batchMeta.reduce((acc, f) => acc + f.file.size, 0);
                 const isHeavyBatch = totalBytes > 1024 * 1024 * 1024; // > 1GB
 
-                if (isHeavyBatch && batchMeta.length > 1) {
-                    toast.warning(`Large batch detected (${(totalBytes / 1024 / 1024).toFixed(0)}MB). Using deep sequential processing to save memory...`);
-                }
-
-                for (let i = 0; i < batchMeta.length; i++) {
-                    const fileMeta = batchMeta[i];
-                    if (isHeavyBatch && batchMeta.length > 1) {
+        if (isHeavyBatch && batchMeta.length > 1) {
                         await new Promise(r => setTimeout(r, 100));
                     }
 
                     try {
                         const conversionFormat = fileMeta.settings.targetFormat.toLowerCase();
                         const mimeType = `image/${conversionFormat === 'jpg' ? 'jpeg' : conversionFormat}`;
-                        const options = {
-                            useWebWorker: true,
-                            maxSizeMB: 50,
-                            initialQuality: fileMeta.settings.quality / 100,
+                        
+                        // Mobile-specific options
+                        const options: any = {
+                            useWebWorker: !isIosDevice, // Disable web workers on iOS due to known issues
+                            maxSizeMB: isMobile ? 25 : 50, // Reduce max size for mobile
+                            initialQuality: isMobile 
+                                ? Math.min(fileMeta.settings.quality / 100, 0.8) // Reduce quality for better performance
+                                : fileMeta.settings.quality / 100,
                             fileType: mimeType
                         };
 
-                        const imageCompression = (await import("browser-image-compression")).default;
-                        const resultBlob = await imageCompression(fileMeta.file, options);
-                        const convertedUrl = createSafeObjectURL(resultBlob);
+                        // Additional mobile fallbacks
+                        try {
+                            const imageCompression = (await import("browser-image-compression")).default;
+                            const resultBlob = await imageCompression(fileMeta.file, options);
+                            const convertedUrl = createSafeObjectURL(resultBlob);
 
-                        updateFileSettings(fileMeta.id, {
-                            convertedUrl,
-                            convertedBlob: resultBlob
-                        });
-                        successCount++;
+                            updateFileSettings(fileMeta.id, {
+                                convertedUrl,
+                                convertedBlob: resultBlob
+                            });
+                            successCount++;
+                        } catch (libError) {
+                            // Fallback to canvas-based conversion for mobile
+                            if (isMobile) {
+                                try {
+                                    const fallbackBlob = await mobileCanvasFallback(fileMeta.file, {
+                                        quality: fileMeta.settings.quality / 100,
+                                        maxSizeMB: options.maxSizeMB,
+                                        fileType: mimeType
+                                    });
+                                    
+                                    const fallbackUrl = createSafeObjectURL(fallbackBlob);
+                                    
+                                    updateFileSettings(fileMeta.id, {
+                                        convertedUrl: fallbackUrl,
+                                        convertedBlob: fallbackBlob
+                                    });
+                                    successCount++;
+                                    continue; // Skip the normal error handling
+                                } catch (fallbackError) {
+                                    console.warn('Mobile fallback failed:', fallbackError);
+                                    // Fall through to normal error handling
+                                }
+                            }
+                            throw libError; // Re-throw if not mobile or fallback also failed
+                        }
                     } catch (e: any) {
+                        console.error(`Conversion failed for ${fileMeta.file.name}:`, e);
+                        toast.error(`Error converting ${fileMeta.file.name}`);
+                        errorCount++;
+                    }
+
+                // Mobile-specific optimizations
+                const isMobile = isMobileBrowser();
+                const isIosDevice = isIOS();
+                
+                // Reduce concurrent processing on mobile to prevent memory issues
+                const maxConcurrent = isMobile ? 1 : 3;
+                
+                // Mobile-specific optimizations
+                const isMobile = isMobileBrowser();
+                const isIosDevice = isIOS();
+                
+                // Reduce concurrent processing on mobile to prevent memory issues
+                const maxConcurrent = isMobile ? 1 : 3;
+                
+                for (let i = 0; i < batchMeta.length; i++) {
+                    const fileMeta = batchMeta[i];
+                    if (isHeavyBatch && batchMeta.length > 1) {
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+
+                    // For mobile, process files sequentially with delays to manage memory
+                    if (isMobile && i > 0) {
+                        // Wait a bit between files to let memory settle
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+
+                    try {
+                        const conversionFormat = fileMeta.settings.targetFormat.toLowerCase();
+                        const mimeType = `image/${conversionFormat === 'jpg' ? 'jpeg' : conversionFormat}`;
+                        
+                        // Mobile-specific options
+                        const options: any = {
+                            useWebWorker: !isIosDevice, // Disable web workers on iOS due to known issues
+                            maxSizeMB: isMobile ? 25 : 50, // Reduce max size for mobile
+                            initialQuality: isMobile 
+                                ? Math.min(fileMeta.settings.quality / 100, 0.8) // Reduce quality for better performance
+                                : fileMeta.settings.quality / 100,
+                            fileType: mimeType
+                        };
+
+                        // Additional mobile fallbacks
+                        try {
+                            const imageCompression = (await import("browser-image-compression")).default;
+                            const resultBlob = await imageCompression(fileMeta.file, options);
+                            const convertedUrl = createSafeObjectURL(resultBlob);
+
+                            updateFileSettings(fileMeta.id, {
+                                convertedUrl,
+                                convertedBlob: resultBlob
+                            });
+                            successCount++;
+                        } catch (libError) {
+                            // Fallback to canvas-based conversion for mobile
+                            if (isMobile) {
+                                try {
+                                    const fallbackBlob = await mobileCanvasFallback(fileMeta.file, {
+                                        quality: fileMeta.settings.quality / 100,
+                                        maxSizeMB: options.maxSizeMB,
+                                        fileType: mimeType
+                                    });
+                                    
+                                    const fallbackUrl = createSafeObjectURL(fallbackBlob);
+                                    
+                                    updateFileSettings(fileMeta.id, {
+                                        convertedUrl: fallbackUrl,
+                                        convertedBlob: fallbackBlob
+                                    });
+                                    successCount++;
+                                    continue; // Skip the normal error handling
+                                } catch (fallbackError) {
+                                    console.warn('Mobile fallback failed:', fallbackError);
+                                    // Fall through to normal error handling
+                                }
+                            }
+                            throw libError; // Re-throw if not mobile or fallback also failed
+                        }
+                    } catch (e: any) {
+                        console.error(`Conversion failed for ${fileMeta.file.name}:`, e);
+                        toast.error(`Error converting ${fileMeta.file.name}`);
+                        errorCount++;
+                    }
+
+                    try {
+                        const conversionFormat = fileMeta.settings.targetFormat.toLowerCase();
+                        const mimeType = `image/${conversionFormat === 'jpg' ? 'jpeg' : conversionFormat}`;
+                        
+                        // Mobile-specific options
+                        const options: any = {
+                            useWebWorker: !isIosDevice, // Disable web workers on iOS due to known issues
+                            maxSizeMB: isMobile ? 25 : 50, // Reduce max size for mobile
+                            initialQuality: isMobile 
+                                ? Math.min(fileMeta.settings.quality / 100, 0.8) // Reduce quality for better performance
+                                : fileMeta.settings.quality / 100,
+                            fileType: mimeType
+                        };
+
+                        // Additional mobile fallbacks
+                        try {
+                            const imageCompression = (await import("browser-image-compression")).default;
+                            const resultBlob = await imageCompression(fileMeta.file, options);
+                            const convertedUrl = createSafeObjectURL(resultBlob);
+
+                            updateFileSettings(fileMeta.id, {
+                                convertedUrl,
+                                convertedBlob: resultBlob
+                            });
+                            successCount++;
+                        } catch (libError) {
+                            // Fallback to canvas-based conversion for mobile
+                            if (isMobile) {
+                                try {
+                                    const fallbackBlob = await mobileCanvasFallback(fileMeta.file, {
+                                        quality: fileMeta.settings.quality / 100,
+                                        maxSizeMB: options.maxSizeMB,
+                                        fileType: mimeType
+                                    });
+                                    
+                                    const fallbackUrl = createSafeObjectURL(fallbackBlob);
+                                    
+                                    updateFileSettings(fileMeta.id, {
+                                        convertedUrl: fallbackUrl,
+                                        convertedBlob: fallbackBlob
+                                    });
+                                    successCount++;
+                                    continue; // Skip the normal error handling
+                                } catch (fallbackError) {
+                                    console.warn('Mobile fallback failed:', fallbackError);
+                                    // Fall through to normal error handling
+                                }
+                            }
+                            throw libError; // Re-throw if not mobile or fallback also failed
+                        }
+                    } catch (e: any) {
+                        console.error(`Conversion failed for ${fileMeta.file.name}:`, e);
                         toast.error(`Error converting ${fileMeta.file.name}`);
                         errorCount++;
                     }
@@ -119,6 +349,7 @@ export default function ConvertTool() {
             });
         }
     });
+};
 
     const handleUpload = (newFiles: File[]) => {
         const uniqueFiles = newFiles.filter(newFile =>
@@ -410,17 +641,18 @@ export default function ConvertTool() {
 
                             <div className="h-px bg-slate-200/60 my-2 w-full"></div>
 
-                            <ToggleRow
-                                label="Preserve Metadata"
-                                description="Keep original EXIF data if target format supports it"
-                                checked={activeFile.settings?.preserveMetadata}
-                                onChange={(val) => handleSettingChange("preserveMetadata", val)}
-                            />
-                        </SettingGroup>
+                                 <ToggleRow
+                                 label="Preserve Metadata"
+                                 description="Keep original EXIF data if target format supports it"
+                                 checked={activeFile.settings?.preserveMetadata}
+                                 onChange={(val) => handleSettingChange("preserveMetadata", val)}
+                             />
+                         </SettingGroup>
+                     </ToolSettingsRenderer>
+                 )}
+             </ToolModal>
+         </div>
+     );
+ }
 
-                    </ToolSettingsRenderer>
-                )}
-            </ToolModal>
-        </div>
-    );
-}
+
