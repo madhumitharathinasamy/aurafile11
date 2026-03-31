@@ -11,87 +11,6 @@ import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { ToolSettingsRenderer, SettingGroup, SelectRow, SettingRow, ToggleRow } from "@/components/tools/ToolSettingsRenderer";
 import { isMobileBrowser, isIOS } from "@/lib/mobile-detection";
 
-// Mobile canvas fallback for when browser-image-compression fails
-const mobileCanvasFallback = async (file: File, options: any): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      
-      // Calculate dimensions with mobile-friendly limits
-      let { width, height } = img;
-      const MAX_DIMENSION = 2048; // Limit canvas size for mobile
-      
-      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-        const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
-        width *= ratio;
-        height *= ratio;
-      }
-      
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Failed to get canvas context'));
-        return;
-      }
-      
-      // Handle background color for formats that don't support transparency
-      // Note: fileMeta is not available here, using default background
-      const formatNeedsBackground = ['jpeg', 'jpg'].includes(options.fileType?.split('/')[1] || '');
-      
-      if (formatNeedsBackground) {
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      } else {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-      
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      // Convert to blob with mobile-friendly quality
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error('Canvas to Blob failed'));
-            return;
-          }
-          resolve(blob);
-        },
-        options.fileType || 'image/jpeg',
-        Math.max(options.quality || 0.8, 0.5) // Ensure minimum quality
-      );
-    };
-    
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('Failed to load image for conversion'));
-    };
-    
-    img.src = url;
-  });
-};
-
-
-const ACCEPTED_EXTENSIONS = {
-    "image/jpeg": [".jpg", ".jpeg"],
-    "image/png": [".png"],
-    "image/webp": [".webp"],
-    "image/gif": [".gif"],
-    "image/tiff": [".tiff", ".tif"],
-    "image/avif": [".avif"],
-    "image/bmp": [".bmp"],
-    "image/x-icon": [".ico"],
-};
-
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-
-
-
 interface ConvertSettings {
     targetFormat: string;
     quality: number; // For JPG, WEBP, AVIF, TIFF
@@ -106,6 +25,94 @@ const DEFAULT_SETTINGS: ConvertSettings = {
     backgroundColor: "transparent", // Only used if format doesn't support transparency and not "transparent"
     preserveMetadata: true,
     lossless: false
+};
+
+const ACCEPTED_EXTENSIONS = {
+    "image/jpeg": [".jpg", ".jpeg"],
+    "image/png": [".png"],
+    "image/webp": [".webp"],
+    "image/gif": [".gif"],
+    "image/tiff": [".tiff", ".tif"],
+    "image/avif": [".avif"],
+    "image/bmp": [".bmp"],
+    "image/x-icon": [".ico"],
+    "image/heic": [".heic", ".heif"],
+};
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+// Mobile canvas fallback for when browser-image-compression fails
+const mobileCanvasFallback = async (file: File, options: any, fileMeta?: IntegratedFile): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            
+            // Calculate dimensions with mobile-friendly limits
+            let { width, height } = img;
+            const MAX_DIMENSION = 2048; // Limit canvas size for mobile
+            
+            if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+                width *= ratio;
+                height *= ratio;
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error('Failed to get canvas context'));
+                return;
+            }
+            
+            // Handle background color for formats that don't support transparency
+            const formatNeedsBackground = ['jpeg', 'jpg'].includes(options.fileType?.split('/')[1] || '');
+            
+            if (formatNeedsBackground) {
+                // Use fileMeta background color if available, otherwise default to white
+                const backgroundColor = fileMeta?.settings?.backgroundColor !== 'transparent' && fileMeta?.settings?.backgroundColor 
+                  ? fileMeta.settings.backgroundColor 
+                  : '#FFFFFF';
+                ctx.fillStyle = backgroundColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Convert to blob with mobile-friendly quality
+            let targetType = options.fileType || 'image/jpeg';
+            // Fallback for tricky formats on mobile canvas which might silently fail or return null
+            if (['image/webp', 'image/avif', 'image/tiff'].includes(targetType) && !document.createElement('canvas').toDataURL(targetType).startsWith(`data:${targetType}`)) {
+                targetType = 'image/jpeg'; // safest fallback
+            }
+
+            canvas.toBlob(
+                (blob) => {
+                    if (!blob) {
+                        reject(new Error('Canvas to Blob failed. Format might be unsupported by device.'));
+                        return;
+                    }
+                    resolve(blob);
+                },
+                targetType,
+                Math.max(options.quality || 0.8, 0.5) // Ensure minimum quality
+            );
+        };
+        
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Failed to load image for conversion'));
+        };
+        
+        img.src = url;
+    });
 };
 
 export default function ConvertTool() {
@@ -134,82 +141,14 @@ export default function ConvertTool() {
                 const totalBytes = batchMeta.reduce((acc, f) => acc + f.file.size, 0);
                 const isHeavyBatch = totalBytes > 1024 * 1024 * 1024; // > 1GB
 
-        if (isHeavyBatch && batchMeta.length > 1) {
-                        await new Promise(r => setTimeout(r, 100));
-                    }
-
-                    try {
-                        const conversionFormat = fileMeta.settings.targetFormat.toLowerCase();
-                        const mimeType = `image/${conversionFormat === 'jpg' ? 'jpeg' : conversionFormat}`;
-                        
-                        // Mobile-specific options
-                        const options: any = {
-                            useWebWorker: !isIosDevice, // Disable web workers on iOS due to known issues
-                            maxSizeMB: isMobile ? 25 : 50, // Reduce max size for mobile
-                            initialQuality: isMobile 
-                                ? Math.min(fileMeta.settings.quality / 100, 0.8) // Reduce quality for better performance
-                                : fileMeta.settings.quality / 100,
-                            fileType: mimeType
-                        };
-
-                        // Additional mobile fallbacks
-                        try {
-                            const imageCompression = (await import("browser-image-compression")).default;
-                            const resultBlob = await imageCompression(fileMeta.file, options);
-                            const convertedUrl = createSafeObjectURL(resultBlob);
-
-                            updateFileSettings(fileMeta.id, {
-                                convertedUrl,
-                                convertedBlob: resultBlob
-                            });
-                            successCount++;
-                        } catch (libError) {
-                            // Fallback to canvas-based conversion for mobile
-                            if (isMobile) {
-                                try {
-                                    const fallbackBlob = await mobileCanvasFallback(fileMeta.file, {
-                                        quality: fileMeta.settings.quality / 100,
-                                        maxSizeMB: options.maxSizeMB,
-                                        fileType: mimeType
-                                    });
-                                    
-                                    const fallbackUrl = createSafeObjectURL(fallbackBlob);
-                                    
-                                    updateFileSettings(fileMeta.id, {
-                                        convertedUrl: fallbackUrl,
-                                        convertedBlob: fallbackBlob
-                                    });
-                                    successCount++;
-                                    continue; // Skip the normal error handling
-                                } catch (fallbackError) {
-                                    console.warn('Mobile fallback failed:', fallbackError);
-                                    // Fall through to normal error handling
-                                }
-                            }
-                            throw libError; // Re-throw if not mobile or fallback also failed
-                        }
-                    } catch (e: any) {
-                        console.error(`Conversion failed for ${fileMeta.file.name}:`, e);
-                        toast.error(`Error converting ${fileMeta.file.name}`);
-                        errorCount++;
-                    }
-
                 // Mobile-specific optimizations
                 const isMobile = isMobileBrowser();
                 const isIosDevice = isIOS();
                 
                 // Reduce concurrent processing on mobile to prevent memory issues
                 const maxConcurrent = isMobile ? 1 : 3;
-                
-                // Mobile-specific optimizations
-                const isMobile = isMobileBrowser();
-                const isIosDevice = isIOS();
-                
-                // Reduce concurrent processing on mobile to prevent memory issues
-                const maxConcurrent = isMobile ? 1 : 3;
-                
+
                 for (let i = 0; i < batchMeta.length; i++) {
-                    const fileMeta = batchMeta[i];
                     if (isHeavyBatch && batchMeta.length > 1) {
                         await new Promise(r => setTimeout(r, 100));
                     }
@@ -220,66 +159,30 @@ export default function ConvertTool() {
                         await new Promise(resolve => setTimeout(resolve, 100));
                     }
 
+                    const fileMeta = batchMeta[i];
+                    
                     try {
                         const conversionFormat = fileMeta.settings.targetFormat.toLowerCase();
                         const mimeType = `image/${conversionFormat === 'jpg' ? 'jpeg' : conversionFormat}`;
                         
-                        // Mobile-specific options
-                        const options: any = {
-                            useWebWorker: !isIosDevice, // Disable web workers on iOS due to known issues
-                            maxSizeMB: isMobile ? 25 : 50, // Reduce max size for mobile
-                            initialQuality: isMobile 
-                                ? Math.min(fileMeta.settings.quality / 100, 0.8) // Reduce quality for better performance
-                                : fileMeta.settings.quality / 100,
-                            fileType: mimeType
-                        };
-
-                        // Additional mobile fallbacks
-                        try {
-                            const imageCompression = (await import("browser-image-compression")).default;
-                            const resultBlob = await imageCompression(fileMeta.file, options);
-                            const convertedUrl = createSafeObjectURL(resultBlob);
-
-                            updateFileSettings(fileMeta.id, {
-                                convertedUrl,
-                                convertedBlob: resultBlob
-                            });
-                            successCount++;
-                        } catch (libError) {
-                            // Fallback to canvas-based conversion for mobile
-                            if (isMobile) {
-                                try {
-                                    const fallbackBlob = await mobileCanvasFallback(fileMeta.file, {
-                                        quality: fileMeta.settings.quality / 100,
-                                        maxSizeMB: options.maxSizeMB,
-                                        fileType: mimeType
-                                    });
-                                    
-                                    const fallbackUrl = createSafeObjectURL(fallbackBlob);
-                                    
-                                    updateFileSettings(fileMeta.id, {
-                                        convertedUrl: fallbackUrl,
-                                        convertedBlob: fallbackBlob
-                                    });
-                                    successCount++;
-                                    continue; // Skip the normal error handling
-                                } catch (fallbackError) {
-                                    console.warn('Mobile fallback failed:', fallbackError);
-                                    // Fall through to normal error handling
-                                }
+                        let fileToProcess = fileMeta.file;
+                        // Pre-process HEIC files since compression libraries native canvas APIs rarely support them
+                        if (fileToProcess.type === 'image/heic' || fileToProcess.type === 'image/heif' || fileToProcess.name.toLowerCase().endsWith('.heic') || fileToProcess.name.toLowerCase().endsWith('.heif')) {
+                            try {
+                                const heic2any = (await import("heic2any")).default;
+                                const heicBlob = await heic2any({
+                                    blob: fileToProcess,
+                                    toType: "image/jpeg",
+                                    quality: 0.9
+                                });
+                                fileToProcess = new File([Array.isArray(heicBlob) ? heicBlob[0] : heicBlob], fileToProcess.name.replace(/\.hei(c|f)$/i, '.jpeg'), {
+                                    type: "image/jpeg"
+                                });
+                            } catch (heicError) {
+                                console.warn("HEIC pre-conversion failed, falling back to basic handler", heicError);
                             }
-                            throw libError; // Re-throw if not mobile or fallback also failed
                         }
-                    } catch (e: any) {
-                        console.error(`Conversion failed for ${fileMeta.file.name}:`, e);
-                        toast.error(`Error converting ${fileMeta.file.name}`);
-                        errorCount++;
-                    }
 
-                    try {
-                        const conversionFormat = fileMeta.settings.targetFormat.toLowerCase();
-                        const mimeType = `image/${conversionFormat === 'jpg' ? 'jpeg' : conversionFormat}`;
-                        
                         // Mobile-specific options
                         const options: any = {
                             useWebWorker: !isIosDevice, // Disable web workers on iOS due to known issues
@@ -293,7 +196,7 @@ export default function ConvertTool() {
                         // Additional mobile fallbacks
                         try {
                             const imageCompression = (await import("browser-image-compression")).default;
-                            const resultBlob = await imageCompression(fileMeta.file, options);
+                            const resultBlob = await imageCompression(fileToProcess, options);
                             const convertedUrl = createSafeObjectURL(resultBlob);
 
                             updateFileSettings(fileMeta.id, {
@@ -302,14 +205,16 @@ export default function ConvertTool() {
                             });
                             successCount++;
                         } catch (libError) {
+                            let fallbackSuccess = false;
+                            
                             // Fallback to canvas-based conversion for mobile
                             if (isMobile) {
                                 try {
-                                    const fallbackBlob = await mobileCanvasFallback(fileMeta.file, {
+                                    const fallbackBlob = await mobileCanvasFallback(fileToProcess, {
                                         quality: fileMeta.settings.quality / 100,
                                         maxSizeMB: options.maxSizeMB,
                                         fileType: mimeType
-                                    });
+                                    }, fileMeta); // Pass fileMeta for background color
                                     
                                     const fallbackUrl = createSafeObjectURL(fallbackBlob);
                                     
@@ -318,13 +223,15 @@ export default function ConvertTool() {
                                         convertedBlob: fallbackBlob
                                     });
                                     successCount++;
-                                    continue; // Skip the normal error handling
+                                    fallbackSuccess = true;
                                 } catch (fallbackError) {
                                     console.warn('Mobile fallback failed:', fallbackError);
-                                    // Fall through to normal error handling
                                 }
                             }
-                            throw libError; // Re-throw if not mobile or fallback also failed
+                            
+                            if (!fallbackSuccess) {
+                                throw libError; // Re-throw if not mobile or fallback also failed
+                            }
                         }
                     } catch (e: any) {
                         console.error(`Conversion failed for ${fileMeta.file.name}:`, e);
@@ -349,7 +256,6 @@ export default function ConvertTool() {
             });
         }
     });
-};
 
     const handleUpload = (newFiles: File[]) => {
         const uniqueFiles = newFiles.filter(newFile =>
@@ -508,7 +414,7 @@ export default function ConvertTool() {
                     </div>
                 </div>
             )}
-
+            
             <ToolModal
                 isOpen={files.length > 0}
                 onClose={handleClearAll}
@@ -641,18 +547,16 @@ export default function ConvertTool() {
 
                             <div className="h-px bg-slate-200/60 my-2 w-full"></div>
 
-                                 <ToggleRow
-                                 label="Preserve Metadata"
-                                 description="Keep original EXIF data if target format supports it"
-                                 checked={activeFile.settings?.preserveMetadata}
-                                 onChange={(val) => handleSettingChange("preserveMetadata", val)}
-                             />
-                         </SettingGroup>
-                     </ToolSettingsRenderer>
-                 )}
-             </ToolModal>
-         </div>
-     );
- }
-
-
+                            <ToggleRow
+                                label="Preserve Metadata"
+                                description="Keep original EXIF data if target format supports it"
+                                checked={activeFile.settings?.preserveMetadata}
+                                onChange={(val) => handleSettingChange("preserveMetadata", val)}
+                            />
+                        </SettingGroup>
+                    </ToolSettingsRenderer>
+                )}
+            </ToolModal>
+        </div>
+    );
+}

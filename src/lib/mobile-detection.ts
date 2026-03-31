@@ -1,5 +1,5 @@
 export const isMobileBrowser = (): boolean => {
-  if (typeof navigator === 'undefined') return false;
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
 
   const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
 
@@ -29,7 +29,7 @@ export const isMobileBrowser = (): boolean => {
 };
 
 export const isIOS = (): boolean => {
-  if (typeof navigator === 'undefined') return false;
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   return [
     'iPad Simulator',
     'iPhone Simulator',
