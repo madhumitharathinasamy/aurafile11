@@ -111,6 +111,7 @@ interface ToolModalProps {
     onDownload?: () => void;
     onStartOver?: () => void;
     onWipeMemory?: () => void;
+    forceSingleView?: boolean; // Forces single view and disables Single/Stacked toggles
 }
 
 export function ToolModal({
@@ -130,7 +131,8 @@ export function ToolModal({
     isSuccess = false,
     onDownload,
     onStartOver,
-    onWipeMemory
+    onWipeMemory,
+    forceSingleView = false
 }: ToolModalProps) {
     const [mounted, setMounted] = useState(false);
     const [zoom, setZoom] = useState<number>(100);
@@ -156,8 +158,8 @@ export function ToolModal({
     // Initial batch view state based on files
     // Reset isBatchView when files array changes dramatically
     useEffect(() => {
-        setIsBatchView(files.length > 1);
-    }, [files.length > 1]);
+        setIsBatchView(!forceSingleView && files.length > 1);
+    }, [files.length, forceSingleView]);
 
     if (!isOpen || !mounted) return null;
 
@@ -196,7 +198,7 @@ export function ToolModal({
                         {/* Right Side: Desktop Toggle & Close X */}
                         <div className="flex items-center gap-3 shrink-0 pl-3">
                             {/* Desktop Single/Batch Toggle */}
-                            {isBatch && (
+                            {isBatch && !forceSingleView && (
                                 <div className="hidden sm:flex items-center bg-[#F1F5F9] p-1 rounded-lg">
                                     <button
                                         onClick={() => setIsBatchView(false)}
@@ -221,7 +223,7 @@ export function ToolModal({
                     </div>
 
                     {/* Mobile Single/Batch Toggle (Second Row on Mobile) */}
-                    {isBatch && (
+                    {isBatch && !forceSingleView && (
                         <div className="flex sm:hidden items-center bg-[#F1F5F9] p-1 rounded-lg self-start">
                             <button
                                 onClick={() => setIsBatchView(false)}

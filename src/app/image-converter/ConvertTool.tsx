@@ -10,6 +10,9 @@ import { useFileUpload, type IntegratedFile } from "@/hooks/useFileUpload";
 import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { ToolSettingsRenderer, SettingGroup, SelectRow, SettingRow, ToggleRow } from "@/components/tools/ToolSettingsRenderer";
 import { isMobileBrowser, isIOS } from "@/lib/mobile-detection";
+import JSZip from "jszip";
+import heic2any from "heic2any";
+import imageCompression from "browser-image-compression";
 
 interface ConvertSettings {
     targetFormat: string;
@@ -169,7 +172,6 @@ export default function ConvertTool() {
                         // Pre-process HEIC files since compression libraries native canvas APIs rarely support them
                         if (fileToProcess.type === 'image/heic' || fileToProcess.type === 'image/heif' || fileToProcess.name.toLowerCase().endsWith('.heic') || fileToProcess.name.toLowerCase().endsWith('.heif')) {
                             try {
-                                const heic2any = (await import("heic2any")).default;
                                 const heicBlob = await heic2any({
                                     blob: fileToProcess,
                                     toType: "image/jpeg",
@@ -195,7 +197,6 @@ export default function ConvertTool() {
 
                         // Additional mobile fallbacks
                         try {
-                            const imageCompression = (await import("browser-image-compression")).default;
                             const resultBlob = await imageCompression(fileToProcess, options);
                             const convertedUrl = createSafeObjectURL(resultBlob);
 
@@ -281,6 +282,21 @@ export default function ConvertTool() {
         } else if (uniqueFiles.length < newFiles.length && skippedCount === 0) {
             toast.info("Duplicate files were skipped.");
         }
+
+        if (files.length + filesToAdd.length > 1) {
+            setApplyToAll(true);
+        }
+    };
+
+    const handleApplyToAllChange = (checked: boolean) => {
+        setApplyToAll(checked);
+        if (checked && activeFile) {
+            updateAllFileSettings({
+                ...activeFile.settings,
+                convertedUrl: null,
+                convertedBlob: null
+            });
+        }
     };
 
     const handleSettingChange = (key: keyof ConvertSettings, value: string | number | boolean) => {
@@ -337,7 +353,6 @@ export default function ConvertTool() {
 
     const downloadAll = async () => {
         try {
-            const JSZip = (await import("jszip")).default;
             const zip = new JSZip();
             const usedNames = new Set<string>();
 
@@ -461,7 +476,7 @@ export default function ConvertTool() {
                         title="Convert Settings"
                         isBatchMode={isBatchMode}
                         applyToAll={applyToAll}
-                        onApplyToAllChange={setApplyToAll}
+                        onApplyToAllChange={handleApplyToAllChange}
                     >
                         <div className="bg-[#E8ECEF] rounded-xl p-4 flex flex-col gap-3 shadow-sm mb-6">
                             <div className="flex items-center gap-3">

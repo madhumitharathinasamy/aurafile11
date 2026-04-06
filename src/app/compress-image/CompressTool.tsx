@@ -11,6 +11,7 @@ import { useFileUpload, type IntegratedFile } from "@/hooks/useFileUpload";
 import { ToolSettingsRenderer, SettingGroup, SettingRow, ToggleRow, SelectRow } from "@/components/tools/ToolSettingsRenderer";
 import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { isMobileBrowser, isIOS } from "@/lib/mobile-detection";
+import imageCompression from "browser-image-compression";
 
 type CompressStrategy = "lossy" | "lossless" | "auto";
 type ChromaSubsampling = "4:4:4" | "4:2:0" | "auto";
@@ -91,8 +92,6 @@ export default function CompressTool() {
                     }
                     
                     try {
-                        const imageCompression = (await import("browser-image-compression")).default;
-                        
                         // Mobile-specific options
                         const options: any = {
                             useWebWorker: !isIosDevice, // Disable web workers on iOS due to known issues
@@ -189,34 +188,25 @@ export default function CompressTool() {
         }
     });
 
-    // Track relevant settings for auto-preview
-    const activeSettingsStr = activeFile ? JSON.stringify({
-        q: activeFile.settings.quality,
-        tm: activeFile.settings.targetMode,
-        tsv: activeFile.settings.targetSizeValue,
-        tsu: activeFile.settings.targetSizeUnit,
-        f: activeFile.settings.outputFormat,
-        s: activeFile.settings.strategy,
-        pm: activeFile.settings.preserveMetadata,
-        cs: activeFile.settings.chromaSubsampling
-    }) : "";
 
-    // Debounced auto-preview
-    useEffect(() => {
-        if (!activeFile) return;
-        if (activeFile.settings.isCompressed) return;
-        if (activeFile.settings.targetMode && !activeFile.settings.targetSizeValue) return;
-
-        const timer = setTimeout(() => {
-            // trigger process without batch checking automatically
-            processFiles([activeFile.file]);
-        }, 600);
-
-        return () => clearTimeout(timer);
-    }, [activeSettingsStr, activeFile, processFiles]);
 
     const handleUpload = async (uploadedFiles: File[]) => {
         addFiles(uploadedFiles, { ...DEFAULT_COMPRESS_SETTINGS });
+        if (files.length + uploadedFiles.length > 1) {
+            setApplyToAll(true);
+        }
+    };
+
+    const handleApplyToAllChange = (checked: boolean) => {
+        setApplyToAll(checked);
+        if (checked && activeFile) {
+            updateAllFileSettings({
+                ...activeFile.settings,
+                isCompressed: false,
+                compressedUrl: null,
+                compressedBlob: null
+            });
+        }
     };
 
     const handleClearAll = () => {
@@ -419,7 +409,7 @@ const mobileCanvasFallback = async (file: File, options: any): Promise<Blob> => 
                         title="Compression Settings"
                         isBatchMode={isBatchMode}
                         applyToAll={applyToAll}
-                        onApplyToAllChange={setApplyToAll}
+                        onApplyToAllChange={handleApplyToAllChange}
                     >
                         {/* Summary Card */}
                         <div className="bg-[#E8ECEF] rounded-xl p-4 flex items-center justify-between shadow-sm">

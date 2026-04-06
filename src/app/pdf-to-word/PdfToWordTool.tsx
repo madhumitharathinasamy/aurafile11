@@ -10,6 +10,7 @@ import { convertPdfToDocx } from "@/lib/pdf-processing/pdf-to-docx";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { generatePdfPreview } from "@/lib/pdf-processing/pdf-preview";
 import { useFileProcessor } from "@/hooks/useFileProcessor";
+import { saveAs } from "file-saver";
 
 export default function PdfToWordTool() {
     const {
@@ -156,16 +157,14 @@ export default function PdfToWordTool() {
 
         try {
             for (const file of completedFiles) {
-                const link = document.createElement("a");
-                link.style.display = "none";
-                link.href = file.settings.resultUrl;
-                link.download = `${file.file.name.replace('.pdf', '')}.docx`;
-                document.body.appendChild(link);
-                link.click();
+                if (file.settings.resultBlob) {
+                    saveAs(file.settings.resultBlob, `${file.file.name.replace('.pdf', '')}.docx`);
+                } else {
+                    saveAs(file.settings.resultUrl, `${file.file.name.replace('.pdf', '')}.docx`);
+                }
 
                 // Allow browser time to trigger download
                 await new Promise(resolve => setTimeout(resolve, 300));
-                document.body.removeChild(link);
             }
         } catch (error) {
             toast.error("Failed to download converted Documents.");
