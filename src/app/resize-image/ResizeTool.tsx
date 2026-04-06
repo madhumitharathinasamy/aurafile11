@@ -12,6 +12,8 @@ import { useFileProcessor } from "@/hooks/useFileProcessor";
 
 import { ToolSettingsRenderer, SettingGroup, SettingRow, ToggleRow, SelectRow } from "@/components/tools/ToolSettingsRenderer";
 import { ResizeSettings } from "./types";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 const DEFAULT_SETTINGS: ResizeSettings = {
     mode: "pixels",
@@ -62,9 +64,22 @@ export default function ResizeTool() {
                         const fileMeta = files.find(f => f.file === targetFiles[i]);
                         if (!fileMeta) continue;
 
-                        const w = Number(fileMeta.settings?.width || 0);
-                        const h = Number(fileMeta.settings?.height || 0);
-                        const dims = getComputedDimensions(w, h, fileMeta.settings as ResizeSettings);
+                        const origW = Number(fileMeta.settings?.originalWidth || fileMeta.settings?.width || 100);
+                        const origH = Number(fileMeta.settings?.originalHeight || fileMeta.settings?.height || 100);
+                        const dims = getComputedDimensions(origW, origH, fileMeta.settings as ResizeSettings);
+
+                        if (dims.width <= 0 || dims.height <= 0) {
+                            throw new Error("Invalid dimensions for resize (cannot be 0)");
+                        }
+                        
+                        // Prevent mobile crashes by clamping excessive dimensions to 8192px safely
+                        const safeDims = { width: dims.width, height: dims.height };
+                        const maxDim = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 4096 : 8192;
+                        if (safeDims.width > maxDim || safeDims.height > maxDim) {
+                            const ratio = Math.min(maxDim / safeDims.width, maxDim / safeDims.height);
+                            safeDims.width = Math.floor(safeDims.width * ratio);
+                            safeDims.height = Math.floor(safeDims.height * ratio);
+                        }
 
                         const targetFormat = (fileMeta.settings.format === "original"
                             ? (["image/jpeg", "image/png", "image/webp"].includes(fileMeta.file.type)
@@ -73,8 +88,8 @@ export default function ResizeTool() {
                             : fileMeta.settings.format) as "image/jpeg" | "image/png" | "image/webp";
 
                         const blob = await resizeImageClient(fileMeta.file, {
-                            width: dims.width,
-                            height: dims.height,
+                            width: safeDims.width,
+                            height: safeDims.height,
                             maintainAspectRatio: false,
                             format: targetFormat,
                             quality: (fileMeta.settings.quality || 90) / 100,
@@ -122,11 +137,29 @@ export default function ResizeTool() {
                 ...DEFAULT_SETTINGS,
                 width: dimensions.width,
                 height: dimensions.height,
+                originalWidth: dimensions.width,
+                originalHeight: dimensions.height,
                 isResized: false
             });
         });
 
+        if (files.length + enrichedFiles.length > 1) {
+            setApplyToAll(true);
+        }
+
         toast.success(`Loaded ${enrichedFiles.length} images for resizing.`);
+    };
+
+    const handleApplyToAllChange = (checked: boolean) => {
+        setApplyToAll(checked);
+        if (checked && activeFile) {
+            updateAllFileSettings({
+                ...activeFile.settings,
+                isResized: false,
+                resizedUrl: null,
+                resizedBlob: null
+            });
+        }
     };
 
     const handleSettingChange = (key: keyof ResizeSettings, value: any) => {
@@ -146,8 +179,8 @@ export default function ResizeTool() {
 
         // Maintain Aspect Ratio logic for Width/Height inputs
         if (activeFile.settings.mode === "pixels" && activeFile.settings.lockAspectRatio) {
-            const originalRatio = activeFile.originalWidth && activeFile.originalHeight
-                ? activeFile.originalWidth / activeFile.originalHeight
+            const originalRatio = activeFile.settings?.originalWidth && activeFile.settings?.originalHeight
+                ? activeFile.settings.originalWidth / activeFile.settings.originalHeight
                 : 1;
 
             if (key === "width" && value !== "") {
@@ -190,10 +223,6 @@ export default function ResizeTool() {
     const handleDownload = async () => {
         try {
             if (applyToAll && isBatchMode) {
-                const [{ default: JSZip }, { saveAs }] = await Promise.all([
-                    import("jszip"),
-                    import("file-saver")
-                ]);
                 const zip = new JSZip();
                 const promises = files.map(async (fileMeta) => {
                     if (!fileMeta.settings.isResized || !fileMeta.settings.resizedBlob) return;
@@ -220,7 +249,6 @@ export default function ResizeTool() {
                     : (activeFile.settings.format.split('/')[1] || "jpg"));
                 const ext = targetFormat === "jpeg" ? "jpg" : targetFormat;
                 const originalName = activeFile.file.name.substring(0, activeFile.file.name.lastIndexOf('.')) || activeFile.file.name;
-                const { saveAs } = await import("file-saver");
                 saveAs(blob, `${originalName}-resized.${ext}`);
             }
         } catch (error) {
@@ -318,13 +346,13 @@ export default function ResizeTool() {
                         title="Resize Settings"
                         isBatchMode={isBatchMode}
                         applyToAll={applyToAll}
-                        onApplyToAllChange={setApplyToAll}
+                        onApplyToAllChange={handleApplyToAllChange}
                     >
                         <div className="bg-[#E8ECEF] rounded-xl p-4 flex items-center justify-between shadow-sm">
                             <div className="flex flex-col">
                                 <span className="text-xs font-medium text-muted-foreground mb-1">Original</span>
                                 <span className="text-sm font-bold text-slate-800">
-                                    {activeFile.file ? `${activeFile.originalWidth || activeFile.settings?.width || '-'}x${activeFile.originalHeight || activeFile.settings?.height || '-'}` : "—"}
+                                    {activeFile.file ? `${activeFile.settings?.originalWidth || activeFile.settings?.width || '-'}x${activeFile.settings?.originalHeight || activeFile.settings?.height || '-'}` : "—"}
                                 </span>
                             </div>
                             <div className="text-slate-400">

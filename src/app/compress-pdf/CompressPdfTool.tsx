@@ -9,6 +9,7 @@ import { PDFDocument } from "@cantoo/pdf-lib";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { generatePdfPreview } from "@/lib/pdf-processing/pdf-preview";
 import { useFileProcessor } from "@/hooks/useFileProcessor";
+import * as pdfjsLib from "pdfjs-dist";
 
 export default function CompressPdfTool() {
     const {
@@ -52,7 +53,6 @@ export default function CompressPdfTool() {
                         const { scale, quality } = levelConfig[currentLevel as keyof typeof levelConfig] ?? levelConfig.recommended;
 
                         try {
-                            const pdfjsLib = await import("pdfjs-dist");
                             if (typeof window !== "undefined") {
                                 pdfjsLib.GlobalWorkerOptions.workerSrc = `/workers/pdf.worker.min.mjs`;
                             }

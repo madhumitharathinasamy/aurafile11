@@ -10,6 +10,9 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { ToolSettingsRenderer, SettingGroup, ToggleRow, SelectRow, SettingRow } from "@/components/tools/ToolSettingsRenderer";
 import { ImageComparison } from "@/components/tools/ImageComparison";
+import { removeBackground } from "@imgly/background-removal";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 interface RemoveBgSettings {
     model: "small" | "medium" | "large";
@@ -37,68 +40,91 @@ export default function RemoveBgTool() {
         activeFile,
         addFiles,
         clearAll,
-        updateFileSettings
+        updateFileSettings,
+        updateAllFileSettings
     } = useFileUpload([]);
 
     const [progressText, setProgressText] = useState<string>("");
     const [longLoading, setLongLoading] = useState(false);
+    const [applyToAll, setApplyToAll] = useState(false);
 
     const { status, processFiles, clearMemory, createSafeObjectURL } = useFileProcessor<number>({
         processFn: async (targetFiles: File[], onProgress: (progress: number) => void) => {
             return new Promise(async (resolve, reject) => {
-                const f = targetFiles[0];
-                if (!f) return resolve(0);
-                const meta = files.find(mf => mf.file === f);
-                if (!meta) return resolve(0);
-
+                let successCount = 0;
                 setProgressText("Loading AI model…");
 
                 try {
-                    const { removeBackground } = await import("@imgly/background-removal");
+                    for (let i = 0; i < targetFiles.length; i++) {
+                        const f = targetFiles[i];
+                        const meta = files.find(mf => mf.file === f);
+                        if (!meta || meta.settings.isDone) continue;
 
-                    // Track downloaded bytes to show model download progress
-                    const downloadedBytes: { [key: string]: number } = {};
-                    const totalBytes: { [key: string]: number } = {};
+                        const baseProgress = (i / targetFiles.length) * 100;
+                        const progressMultiplier = 1 / targetFiles.length;
 
-                    const config = {
-                        model: meta.settings.model as any,
-                        progress: (key: string, current: number, total: number) => {
-                            if (key.startsWith("fetch:")) {
-                                downloadedBytes[key] = current;
-                                totalBytes[key] = total;
-                                const totalDl = Object.values(downloadedBytes).reduce((a, b) => a + b, 0);
-                                const totalAll = Object.values(totalBytes).reduce((a, b) => a + b, 0);
-                                if (totalAll > 0) {
-                                    const pct = Math.round((totalDl / totalAll) * 100);
-                                    const mb = (totalDl / 1024 / 1024).toFixed(1);
-                                    const totalMb = (totalAll / 1024 / 1024).toFixed(1);
-                                    setProgressText(`Downloading AI model… ${mb} / ${totalMb} MB (${pct}%)`);
-                                    onProgress(pct * 0.5); // Download is first half
-                                } else {
-                                    setProgressText("Downloading AI model… (cached)");
-                                    onProgress(50);
+                        // Track downloaded bytes to show model download progress
+                        const downloadedBytes: { [key: string]: number } = {};
+                        const totalBytes: { [key: string]: number } = {};
+
+                        const config = {
+                            model: meta.settings.model as any,
+                            progress: (key: string, current: number, total: number) => {
+                                if (key.startsWith("fetch:")) {
+                                    downloadedBytes[key] = current;
+                                    totalBytes[key] = total;
+                                    const totalDl = Object.values(downloadedBytes).reduce((a, b) => a + b, 0);
+                                    const totalAll = Object.values(totalBytes).reduce((a, b) => a + b, 0);
+                                    if (totalAll > 0) {
+                                        const pct = Math.round((totalDl / totalAll) * 100);
+                                        const mb = (totalDl / 1024 / 1024).toFixed(1);
+                                        const totalMb = (totalAll / 1024 / 1024).toFixed(1);
+                                        if (targetFiles.length === 1) {
+                                            setProgressText(`Downloading AI model… ${mb} / ${totalMb} MB (${pct}%)`);
+                                        } else {
+                                            setProgressText(`Processing ${i + 1}/${targetFiles.length} (Downloading AI...)`);
+                                        }
+                                        onProgress(baseProgress + (pct * 0.5 * progressMultiplier));
+                                    } else {
+                                        if (targetFiles.length === 1) {
+                                            setProgressText("Downloading AI model… (cached)");
+                                        } else {
+                                            setProgressText(`Processing ${i + 1}/${targetFiles.length} (AI cached)`);
+                                        }
+                                        onProgress(baseProgress + (50 * progressMultiplier));
+                                    }
+                                } else if (key === "compute:inference") {
+                                    const percent = Math.round((current / total) * 100);
+                                    if (targetFiles.length === 1) {
+                                        setProgressText(`Removing background… ${percent}%`);
+                                    } else {
+                                        setProgressText(`Processing ${i + 1}/${targetFiles.length} (${percent}%)`);
+                                    }
+                                    onProgress(baseProgress + ((50 + (percent * 0.5)) * progressMultiplier));
                                 }
-                            } else if (key === "compute:inference") {
-                                const percent = Math.round((current / total) * 100);
-                                setProgressText(`Removing background… ${percent}%`);
-                                onProgress(50 + (percent * 0.5)); // Inference is second half
-                            }
-                        },
-                        debug: false
-                    };
+                            },
+                            debug: false
+                        };
 
-                    const blob = await removeBackground(meta.file, config);
+                        const blob = await removeBackground(meta.file, config);
 
-                    updateFileSettings(meta.id, {
-                        cutoutBlob: blob,
-                        isDone: true
-                    });
+                        updateFileSettings(meta.id, {
+                            cutoutBlob: blob,
+                            isDone: true
+                        });
 
-                    setProgressText("Applying final touches…");
-                    await applyPostProcessing(meta.file, blob, meta.settings, meta.id);
+                        setProgressText(targetFiles.length === 1 ? "Applying final touches…" : `Applying final touches (${i + 1}/${targetFiles.length})…`);
+                        await applyPostProcessing(meta.file, blob, meta.settings, meta.id);
+                        successCount++;
+                        onProgress(((i + 1) / targetFiles.length) * 100);
+                    }
 
-                    toast.success("Background removed successfully!");
-                    resolve(1);
+                    if (targetFiles.length > 1) {
+                        toast.success(`Successfully processed ${successCount} images!`);
+                    } else if (successCount > 0) {
+                        toast.success("Background removed successfully!");
+                    }
+                    resolve(successCount);
                 } catch (error: any) {
                     toast.error("Failed to remove background. Please try again.");
                     reject(error || new Error("Unknown background removal error"));
@@ -132,14 +158,17 @@ export default function RemoveBgTool() {
     }, [activeFile?.settings?.bgType, activeFile?.settings?.bgColor, activeFile?.settings?.blurAmount, activeFile?.settings?.format, activeFile?.settings?.edgeFeathering]);
 
     const handleUpload = (uploadedFiles: File[]) => {
-        if (files.length > 0) {
-            toast.error("Background tool only supports one image at a time.");
+        if (files.length + uploadedFiles.length > 30) {
+            toast.error("You can process up to 30 images at a time.");
             return;
         }
-        addFiles([uploadedFiles[0]], {
+        addFiles(uploadedFiles, {
             ...DEFAULT_SETTINGS,
             isDone: false
         });
+        if (files.length + uploadedFiles.length > 1) {
+            setApplyToAll(true);
+        }
     };
 
     const handleSettingChange = (key: keyof RemoveBgSettings, value: any) => {
@@ -152,76 +181,133 @@ export default function RemoveBgTool() {
             updates.format = 'image/jpeg';
         }
 
-        updateFileSettings(activeFile.id, updates);
+        if (applyToAll && files.length > 1) {
+            updateAllFileSettings(updates);
+        } else {
+            updateFileSettings(activeFile.id, updates);
+        }
     };
 
     const applyPostProcessing = async (originalFile: File, cutoutBlob: Blob, settings: any, fileId: string) => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        const origImg = new Image();
-        const cutoutImg = new Image();
-
-        const loadImg = (img: HTMLImageElement, src: string) => new Promise((resolve) => {
-            img.onload = resolve;
-            img.src = src;
-        });
-
-        const origUrl = URL.createObjectURL(originalFile);
-        const cutoutUrl = URL.createObjectURL(cutoutBlob);
-
-        await Promise.all([
-            loadImg(origImg, origUrl),
-            loadImg(cutoutImg, cutoutUrl)
-        ]);
-
-        URL.revokeObjectURL(origUrl);
-        URL.revokeObjectURL(cutoutUrl);
-
-        canvas.width = origImg.width;
-        canvas.height = origImg.height;
-
-        if (settings.bgType === "color") {
-            ctx.fillStyle = settings.bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else if (settings.bgType === "blur") {
-            ctx.filter = `blur(${settings.blurAmount}px)`;
-            ctx.drawImage(origImg, 0, 0, canvas.width, canvas.height);
-            ctx.filter = "none";
-        }
-
-        ctx.drawImage(cutoutImg, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob((finalBlob) => {
-            if (finalBlob) {
-                const url = createSafeObjectURL(finalBlob);
-                updateFileSettings(fileId, { finalUrl: url });
+        return new Promise<void>(async (resolve, reject) => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return reject(new Error("No canvas context"));
+    
+            const origImg = new Image();
+            const cutoutImg = new Image();
+    
+            const loadImg = (img: HTMLImageElement, src: string) => new Promise((res, rej) => {
+                img.onload = res;
+                img.onerror = () => rej(new Error("Failed to load image"));
+                img.src = src;
+            });
+    
+            const origUrl = URL.createObjectURL(originalFile);
+            const cutoutUrl = URL.createObjectURL(cutoutBlob);
+    
+            try {
+                await Promise.all([
+                    loadImg(origImg, origUrl),
+                    loadImg(cutoutImg, cutoutUrl)
+                ]);
+            } catch (err) {
+                URL.revokeObjectURL(origUrl);
+                URL.revokeObjectURL(cutoutUrl);
+                return reject(err);
             }
-        }, settings.format, 0.95);
+    
+            URL.revokeObjectURL(origUrl);
+            URL.revokeObjectURL(cutoutUrl);
+    
+            let targetW = origImg.width;
+            let targetH = origImg.height;
+            const maxDim = (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) ? 2048 : 4096;
+            
+            if (targetW > maxDim || targetH > maxDim) {
+                const ratio = Math.min(maxDim / targetW, maxDim / targetH);
+                targetW = Math.round(targetW * ratio);
+                targetH = Math.round(targetH * ratio);
+            }
+    
+            canvas.width = targetW;
+            canvas.height = targetH;
+    
+            if (settings.bgType === "color") {
+                ctx.fillStyle = settings.bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else if (settings.bgType === "blur") {
+                ctx.filter = `blur(${settings.blurAmount}px)`;
+                ctx.drawImage(origImg, 0, 0, canvas.width, canvas.height);
+                ctx.filter = "none";
+            }
+    
+            ctx.drawImage(cutoutImg, 0, 0, canvas.width, canvas.height);
+    
+            canvas.toBlob((finalBlob) => {
+                if (finalBlob) {
+                    const url = createSafeObjectURL(finalBlob);
+                    updateFileSettings(fileId, { finalUrl: url, finalBlob: finalBlob });
+                    resolve();
+                } else {
+                    reject(new Error("Failed to encode final image"));
+                }
+            }, settings.format, 0.95);
+        });
     };
 
     const handleProcess = async () => {
-        if (!activeFile || activeFile.settings.isDone) return;
-        processFiles([activeFile.file]);
+        const filesToProcess = applyToAll ? files.filter(f => !f.settings.isDone) : (activeFile && !activeFile.settings.isDone ? [activeFile] : []);
+        if (filesToProcess.length > 0) {
+            processFiles(filesToProcess.map(f => f.file));
+        }
     };
 
-    const handleDownload = () => {
-        const urlToDownload = activeFile?.settings?.finalUrl;
-        if (!urlToDownload || !activeFile) return;
+    const handleDownload = async () => {
+        try {
+            if (applyToAll && files.length > 1) {
+                const zip = new JSZip();
+                const doneFiles = files.filter(f => f.settings.isDone && f.settings.finalBlob);
+                if (doneFiles.length === 0) {
+                    toast.error("No completed images found. Please process them first.");
+                    return;
+                }
+                
+                for (const f of doneFiles) {
+                    const blob = f.settings.finalBlob;
+                    const baseName = f.file.name.substring(0, f.file.name.lastIndexOf('.')) || f.file.name;
+                    const ext = f.settings.format === "image/png" ? "png" : "jpg";
+                    zip.file(`nobg_${baseName}.${ext}`, blob);
+                }
+                const content = await zip.generateAsync({ type: "blob" });
+                saveAs(content, "aurafile-backgrounds.zip");
+                toast.success(`Downloaded ${doneFiles.length} images!`);
+            } else {
+                const urlToDownload = activeFile?.settings?.finalUrl;
+                const blobToDownload = activeFile?.settings?.finalBlob;
+                if (!urlToDownload || !activeFile) {
+                    toast.error("Image is not ready for download.");
+                    return;
+                }
 
-        const link = document.createElement("a");
-        link.href = urlToDownload;
-        const baseName = activeFile.file.name.substring(0, activeFile.file.name.lastIndexOf('.')) || activeFile.file.name;
-        const ext = activeFile.settings.format === "image/png" ? "png" : "jpg";
-        link.download = `nobg_${baseName}.${ext}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+                const baseName = activeFile.file.name.substring(0, activeFile.file.name.lastIndexOf('.')) || activeFile.file.name;
+                const ext = activeFile.settings.format === "image/png" ? "png" : "jpg";
+                
+                if (blobToDownload) {
+                    saveAs(blobToDownload, `nobg_${baseName}.${ext}`);
+                } else {
+                    saveAs(urlToDownload, `nobg_${baseName}.${ext}`);
+                }
+                toast.success("Image downloaded successfully!");
+            }
+        } catch (err) {
+            console.error("Download Error:", err);
+            toast.error("Failed to download image. Try again.");
+        }
     };
 
-    const isDone = activeFile?.settings?.isDone;
-    const finalUrl = activeFile?.settings?.finalUrl;
+    const isAllReady = applyToAll && files.length > 0 && files.every(f => f.settings.isDone && f.settings.finalUrl);
+    const isCurrentReady = !applyToAll && activeFile && activeFile.settings.isDone && activeFile.settings.finalUrl;
 
     const handleClearAll = () => {
         clearAll();
@@ -248,10 +334,10 @@ export default function RemoveBgTool() {
                 </div>
             )}
 
-            {isDone && finalUrl ? (
+            {activeFile?.settings?.isDone && activeFile?.settings?.finalUrl ? (
                 <ImageComparison
                     beforeImage={activeFile.previewUrl}
-                    afterImage={finalUrl}
+                    afterImage={activeFile.settings.finalUrl}
                 />
             ) : (
                 <img
@@ -288,32 +374,39 @@ export default function RemoveBgTool() {
                 files={files}
                 activeIndex={activeIndex}
                 setActiveIndex={setActiveIndex}
-                onPrimaryAction={isDone ? handleDownload : handleProcess}
+                onPrimaryAction={ (applyToAll && files.length > 1) ? (isAllReady ? handleDownload : handleProcess) : (isCurrentReady ? handleDownload : handleProcess) }
                 primaryActionText={
                     <span className="flex items-center justify-center gap-2">
-                        <Icon name={isDone ? "download" : "wand-2"} size={18} />
-                        {isDone ? "Download Image" : "Remove Background"}
+                        <Icon name={(applyToAll && files.length > 1 ? isAllReady : isCurrentReady) ? "download" : "wand-2"} size={18} />
+                        {(applyToAll && files.length > 1) 
+                          ? (isAllReady ? `Download All (${files.length} Zipped)` : `Remove Backgrounds (${files.filter(f=>!f.settings.isDone).length})`)
+                          : (isCurrentReady ? "Download Image" : "Remove Background")
+                        }
                     </span>
                 }
                 isProcessing={status === 'processing'}
+                isSuccess={(applyToAll && files.length > 1) ? isAllReady : isCurrentReady}
+                onDownload={handleDownload}
                 customPreview={customPreview}
             >
                 {activeFile && (
                     <ToolSettingsRenderer
                         title="Background Options"
-                        isBatchMode={false}
+                        isBatchMode={files.length > 1}
+                        applyToAll={applyToAll}
+                        onApplyToAllChange={setApplyToAll}
                     >
                         {/* Status Check */}
-                        <div className={`p-4 rounded-xl border flex items-center gap-4 transition-colors mb-6 shadow-sm ${isDone ? 'bg-green-50 border-green-200' : 'bg-[#E8ECEF] border-transparent'}`}>
-                            <div className={`p-2 rounded-full ${isDone ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-muted-foreground'}`}>
-                                <Icon name={isDone ? "check" : "image"} size={20} />
+                        <div className={`p-4 rounded-xl border flex items-center gap-4 transition-colors mb-6 shadow-sm ${activeFile.settings.isDone ? 'bg-green-50 border-green-200' : 'bg-[#E8ECEF] border-transparent'}`}>
+                            <div className={`p-2 rounded-full ${activeFile.settings.isDone ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-muted-foreground'}`}>
+                                <Icon name={activeFile.settings.isDone ? "check" : "image"} size={20} />
                             </div>
                             <div>
-                                <h3 className={`font-bold text-sm ${isDone ? 'text-green-800' : 'text-slate-800'}`}>
-                                    {isDone ? "Foreground Isolated!" : "Ready for Processing"}
+                                <h3 className={`font-bold text-sm ${activeFile.settings.isDone ? 'text-green-800' : 'text-slate-800'}`}>
+                                    {activeFile.settings.isDone ? "Foreground Isolated!" : "Ready for Processing"}
                                 </h3>
                                 <p className="text-muted-foreground mt-0.5">
-                                    {isDone ? "Tweak the background or download." : "Configure settings and click Remove."}
+                                    {activeFile.settings.isDone ? "Tweak the background or download." : "Configure settings and click Remove."}
                                 </p>
                             </div>
                         </div>
@@ -323,7 +416,7 @@ export default function RemoveBgTool() {
                                 label="AI Model Detail"
                                 value={activeFile.settings?.model}
                                 onChange={(val) => handleSettingChange("model", val)}
-                                disabled={isDone}
+                                disabled={activeFile.settings.isDone}
                                 options={[
                                     { label: "Medium (Recommended)", value: "medium" },
                                     { label: "Small (Faster, Less detail)", value: "small" },
@@ -332,7 +425,7 @@ export default function RemoveBgTool() {
                             />
                             <p className="text-muted-foreground mt-1">If the result misses small details like hair, try Large mode and re-process.</p>
 
-                            {isDone && (
+                            {activeFile.settings.isDone && (
                                 <button
                                     onClick={() => updateFileSettings(activeFile.id, { isDone: false })}
                                     className="mt-3 w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors border border-slate-200"

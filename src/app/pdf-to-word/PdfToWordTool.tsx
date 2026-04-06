@@ -10,6 +10,7 @@ import { convertPdfToDocx } from "@/lib/pdf-processing/pdf-to-docx";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { generatePdfPreview } from "@/lib/pdf-processing/pdf-preview";
 import { useFileProcessor } from "@/hooks/useFileProcessor";
+import { saveAs } from "file-saver";
 
 export default function PdfToWordTool() {
     const {
@@ -155,7 +156,6 @@ export default function PdfToWordTool() {
         if (completedFiles.length === 0) return;
 
         try {
-            const { saveAs } = await import('file-saver');
             for (const file of completedFiles) {
                 if (file.settings.resultBlob) {
                     saveAs(file.settings.resultBlob, `${file.file.name.replace('.pdf', '')}.docx`);

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useFileProcessor } from "@/hooks/useFileProcessor";
+import { PDFDocument } from "@cantoo/pdf-lib";
 
 
 export default function UnlockPdfTool() {
@@ -35,7 +36,6 @@ export default function UnlockPdfTool() {
                         const arrayBuffer = await f.arrayBuffer();
 
                         // pdf-lib accepts password in load options to decrypt
-                        const { PDFDocument } = await import("@cantoo/pdf-lib");
                         const pdfDoc = await PDFDocument.load(arrayBuffer, { password: password } as any);
 
                         const pdfBytes = await pdfDoc.save();

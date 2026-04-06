@@ -18,6 +18,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useFileProcessor } from "@/hooks/useFileProcessor";
 import { ToolSettingsRenderer, SettingGroup, SettingRow } from "@/components/tools/ToolSettingsRenderer";
 import { saveAs } from "file-saver";
+import JSZip from "jszip";
 
 type AspectRatio = {
     label: string;
@@ -94,18 +95,21 @@ export default function CropTool() {
 
                         const result = await canvasUtils(source, cropParams, rotate, { horizontal: flipH, vertical: flipV }, isCircular);
 
-                        if (result) {
+                        if (result && result.blob) {
                             const blobUrl = createSafeObjectURL(result.blob);
                             updateFileSettings(fileMeta.id, { isCropped: true, croppedUrl: blobUrl, croppedBlob: result.blob });
                             successCount++;
+                        } else {
+                            throw new Error(`Failed to map valid pixel data for image ${i+1}`);
                         }
                         onProgress(((i + 1) / filesToProcess.length) * 100);
                     }
                     
+                    if (successCount === 0) throw new Error("Could not process any images.");
                     toast.success("Crop applied successfully! Ready to download.");
                     resolve(successCount);
-                } catch (error) {
-                    toast.error("Failed to crop image(s).");
+                } catch (error: any) {
+                    toast.error(error.message || "Failed to crop image(s).");
                     reject(error);
                 }
             });
@@ -169,6 +173,10 @@ export default function CropTool() {
             setSelectedRatioLabel("Free");
             setIsCircular(false);
         }
+        
+        if (files.length + uniqueFiles.length > 1) {
+            setApplyToAll(true);
+        }
     };
 
     const handleClearAll = () => {
@@ -188,7 +196,15 @@ export default function CropTool() {
 
     const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
         handleSettingChange({}); // Triggers isCropped resetting
-        const { width, height, naturalWidth, naturalHeight } = e.currentTarget;
+        const { naturalWidth, naturalHeight } = e.currentTarget;
+        let { width, height } = e.currentTarget;
+
+        // Fallback if browser hasn't computed css layout width yet
+        if (width === 0 || height === 0) {
+            width = naturalWidth;
+            height = naturalHeight;
+        }
+
         const sX = naturalWidth / width;
         const sY = naturalHeight / height;
         setScale({ x: sX, y: sY });
@@ -300,11 +316,36 @@ export default function CropTool() {
                     absH = (cropParams.height / 100) * img.naturalHeight;
                 }
 
-                canvas.width = Math.floor(absW);
-                canvas.height = Math.floor(absH);
+                // Prevent OOM Crashes on Mobile/High-Res
+                const maxDim = (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) ? 2048 : 4096;
+                let targetW = Math.floor(absW);
+                let targetH = Math.floor(absH);
+                let drawScaleX = 1;
+                let drawScaleY = 1;
+
+                if (targetW <= 0 || targetH <= 0 || isNaN(targetW) || isNaN(targetH)) {
+                    reject(new Error("Invalid crop dimensions (0px or NaN) detected."));
+                    return;
+                }
+
+                if (targetW > maxDim || targetH > maxDim) {
+                    const ratio = Math.min(maxDim / targetW, maxDim / targetH);
+                    targetW = Math.floor(targetW * ratio);
+                    targetH = Math.floor(targetH * ratio);
+                    drawScaleX = ratio;
+                    drawScaleY = ratio;
+                }
+
+                canvas.width = targetW;
+                canvas.height = targetH;
 
                 ctx.imageSmoothingQuality = 'high';
                 ctx.save();
+
+                // Apply downscaling if dimensions exceeded safe mobile limits
+                if (drawScaleX !== 1) {
+                    ctx.scale(drawScaleX, drawScaleY);
+                }
 
                 ctx.translate(-absX, -absY);
                 ctx.translate(img.naturalWidth / 2, img.naturalHeight / 2);
@@ -376,7 +417,6 @@ export default function CropTool() {
     const handleDownload = async () => {
         try {
             if (applyToAll && files.length > 1) {
-                const JSZip = (await import("jszip")).default;
                 const zip = new JSZip();
                 const promises = files.map(async (fileMeta) => {
                     if (!fileMeta.settings?.isCropped || !fileMeta.settings.croppedBlob) return;
@@ -510,11 +550,12 @@ export default function CropTool() {
                     </span>
                 }
                 isProcessing={status === 'processing'}
-                isSuccess={(applyToAll && files.length > 1) ? isAllReady : isCurrentReady}
+                isSuccess={!!((applyToAll && files.length > 1) ? isAllReady : isCurrentReady)}
                 onDownload={handleDownload}
                 onStartOver={clearAll}
                 onWipeMemory={() => { clearAll(); clearMemory(); }}
                 customPreview={customPreview}
+                forceSingleView={true}
             >
                 {activeFile && (
                     <ToolSettingsRenderer
