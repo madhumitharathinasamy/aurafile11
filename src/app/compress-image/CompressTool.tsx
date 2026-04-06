@@ -192,6 +192,21 @@ export default function CompressTool() {
 
     const handleUpload = async (uploadedFiles: File[]) => {
         addFiles(uploadedFiles, { ...DEFAULT_COMPRESS_SETTINGS });
+        if (files.length + uploadedFiles.length > 1) {
+            setApplyToAll(true);
+        }
+    };
+
+    const handleApplyToAllChange = (checked: boolean) => {
+        setApplyToAll(checked);
+        if (checked && activeFile) {
+            updateAllFileSettings({
+                ...activeFile.settings,
+                isCompressed: false,
+                compressedUrl: null,
+                compressedBlob: null
+            });
+        }
     };
 
     const handleClearAll = () => {
@@ -394,7 +409,7 @@ const mobileCanvasFallback = async (file: File, options: any): Promise<Blob> => 
                         title="Compression Settings"
                         isBatchMode={isBatchMode}
                         applyToAll={applyToAll}
-                        onApplyToAllChange={setApplyToAll}
+                        onApplyToAllChange={handleApplyToAllChange}
                     >
                         {/* Summary Card */}
                         <div className="bg-[#E8ECEF] rounded-xl p-4 flex items-center justify-between shadow-sm">

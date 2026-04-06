@@ -282,6 +282,21 @@ export default function ConvertTool() {
         } else if (uniqueFiles.length < newFiles.length && skippedCount === 0) {
             toast.info("Duplicate files were skipped.");
         }
+
+        if (files.length + filesToAdd.length > 1) {
+            setApplyToAll(true);
+        }
+    };
+
+    const handleApplyToAllChange = (checked: boolean) => {
+        setApplyToAll(checked);
+        if (checked && activeFile) {
+            updateAllFileSettings({
+                ...activeFile.settings,
+                convertedUrl: null,
+                convertedBlob: null
+            });
+        }
     };
 
     const handleSettingChange = (key: keyof ConvertSettings, value: string | number | boolean) => {
@@ -461,7 +476,7 @@ export default function ConvertTool() {
                         title="Convert Settings"
                         isBatchMode={isBatchMode}
                         applyToAll={applyToAll}
-                        onApplyToAllChange={setApplyToAll}
+                        onApplyToAllChange={handleApplyToAllChange}
                     >
                         <div className="bg-[#E8ECEF] rounded-xl p-4 flex flex-col gap-3 shadow-sm mb-6">
                             <div className="flex items-center gap-3">
