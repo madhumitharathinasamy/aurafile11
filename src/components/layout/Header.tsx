@@ -25,7 +25,7 @@ export function Header() {
 
                 {/* Desktop Nav - Centered */}
                 <nav className="hidden flex-1 justify-center gap-6 lg:gap-8 md:flex items-center">
-                    <Link href="/" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
+                    <Link href="/" className="p-2 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
                         Home
                     </Link>
 
@@ -87,13 +87,13 @@ export function Header() {
                         </div>
                     </div>
 
-                    <Link href="/blog" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
+                    <Link href="/blog" className="p-2 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
                         Blog
                     </Link>
-                    <Link href="/about" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
+                    <Link href="/about" className="p-2 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
                         About
                     </Link>
-                    <Link href="/contact" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
+                    <Link href="/contact" className="p-2 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900">
                         Contact
                     </Link>
                 </nav>
@@ -104,7 +104,7 @@ export function Header() {
 
                     <Link
                         href="/#tools"
-                        className="rounded-[6px] border-2 border-[#00B4D8] px-4 py-2 mt-[-2px] text-sm font-bold text-[#00B4D8] bg-transparent shadow-sm transition-all hover:bg-[#00B4D8]/10 hover:shadow"
+                        className="inline-flex items-center justify-center rounded-[6px] border-2 border-[#00B4D8] px-4 py-2 mt-[-2px] text-sm font-bold text-[#00B4D8] bg-transparent shadow-sm transition-all hover:bg-[#00B4D8]/10 hover:shadow min-h-[40px]"
                         onClick={(e) => {
                             const element = document.getElementById('tools');
                             if (element) {
@@ -123,7 +123,7 @@ export function Header() {
                     <button
                         onClick={toggleMenu}
                         aria-label="Toggle Menu"
-                        className="p-2 text-foreground"
+                        className="p-3 min-h-[44px] min-w-[44px] flex items-center justify-center text-foreground"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             {isMenuOpen ? (
