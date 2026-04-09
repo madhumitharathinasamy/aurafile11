@@ -102,6 +102,14 @@ export const siteConfig = {
                     tags: ["AI", "Edit"],
                     keywords: ["transparent", "cutout", "bg", "remove bg", "erase", "magic"]
                 },
+                {
+                    title: "Compress to Target Size",
+                    description: "Compress images directly to a specific filesize like 50KB or 100KB.",
+                    href: "/compress-image-to-100kb",
+                    icon: "shrink",
+                    tags: ["Target Size"],
+                    keywords: ["target size", "50kb", "100kb", "file limit", "discord", "restrict file size"]
+                },
             ],
             pdf: [
                 {

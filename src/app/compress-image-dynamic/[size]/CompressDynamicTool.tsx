@@ -50,7 +50,11 @@ const DEFAULT_COMPRESS_SETTINGS: CompressSettings = {
     compressedBlob: null
 };
 
-export default function CompressTool() {
+interface CompressDynamicToolProps {
+    defaultTargetSize?: string;
+}
+
+export default function CompressDynamicTool({ defaultTargetSize }: CompressDynamicToolProps = {}) {
     const {
         files,
         activeIndex,
@@ -62,6 +66,15 @@ export default function CompressTool() {
         updateAllFileSettings,
         isBatchMode
     } = useFileUpload([]);
+
+    const defaultSettings: CompressSettings = {
+        ...DEFAULT_COMPRESS_SETTINGS,
+        ...(defaultTargetSize ? {
+            targetMode: true,
+            targetSizeUnit: "KB",
+            targetSizeValue: defaultTargetSize
+        } : {})
+    };
 
     const [applyToAll, setApplyToAll] = useState(false);
 
@@ -174,6 +187,15 @@ export default function CompressTool() {
                                 compressedBlob: compressedFile
                             });
                             successCount++;
+
+                            // Analytics Hook
+                            if (typeof window !== "undefined" && (window as any).gtag && currentFile.settings.targetMode) {
+                                (window as any).gtag("event", "compress_dynamic_size", {
+                                    event_category: "Engagement",
+                                    event_label: "Dynamic KB Compression",
+                                    target_size_kb: currentFile.settings.targetSizeValue
+                                });
+                            }
                         } catch (canvasError) {
                             // Fallback to canvas-based compression if library fails
                             if (isMobile) {
@@ -225,7 +247,7 @@ export default function CompressTool() {
 
 
     const handleUpload = async (uploadedFiles: File[]) => {
-        addFiles(uploadedFiles, { ...DEFAULT_COMPRESS_SETTINGS });
+        addFiles(uploadedFiles, { ...defaultSettings });
         if (files.length + uploadedFiles.length > 1) {
             setApplyToAll(true);
         }
@@ -463,6 +485,24 @@ const mobileCanvasFallback = async (file: File, options: any): Promise<Blob> => 
                                 </span>
                             </div>
                         </div>
+
+                        {/* Smart Suggestion - Extreme Downscale Warning */}
+                        {activeFile.settings.isCompressed && activeFile.settings.targetMode && activeFile.file.size > 2 * 1024 * 1024 && (
+                            <div className="bg-amber-50 rounded-xl p-4 mt-4 border border-amber-200/50 flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
+                                    <Icon name="alert-circle" size={16} />
+                                    <span>Was the quality reduced too much?</span>
+                                </div>
+                                <p className="text-xs text-amber-700/80 leading-relaxed">
+                                    Because your original image was massive, making it forcibly fit {activeFile.settings.targetSizeValue} KB significantly scaled down your dimensions.
+                                </p>
+                                <div className="flex gap-2 mt-1">
+                                    <a href="/resize-image" className="inline-flex items-center text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-md transition-colors">
+                                        Use Resize Tool Instead
+                                    </a>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Core Compression Group */}
                         <SettingGroup title="Quality & Sizing">

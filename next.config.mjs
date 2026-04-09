@@ -31,6 +31,14 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: '/compress-image-to-:size(\\d+)kb',
+        destination: '/compress-image-dynamic/:size',
+      },
+    ];
+  },
   async headers() {
     return [
       {

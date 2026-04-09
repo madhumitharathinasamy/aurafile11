@@ -61,6 +61,7 @@ export function Footer() {
                         <nav aria-label="Footer Navigation - Popular Tools">
                             <ul className="flex flex-col gap-4 m-0 p-0">
                                 <li><Link href="/compress-image" className="text-slate-400 hover:text-white hover:translate-x-1 transition-all text-sm font-medium inline-block py-1">Compress Image</Link></li>
+                                <li><Link href="/compress-image-to-100kb" className="text-slate-400 hover:text-white hover:translate-x-1 transition-all text-sm font-medium inline-block py-1">Compress to 100KB</Link></li>
                                 <li><Link href="/resize-image" className="text-slate-400 hover:text-white hover:translate-x-1 transition-all text-sm font-medium inline-block py-1">Resize Image</Link></li>
                                 <li><Link href="/pdf-to-word" className="text-slate-400 hover:text-white hover:translate-x-1 transition-all text-sm font-medium inline-block py-1">PDF to Word</Link></li>
                                 <li><Link href="/remove-background" className="text-slate-400 hover:text-white hover:translate-x-1 transition-all text-sm font-medium inline-block py-1">Background Remover</Link></li>
@@ -95,9 +96,21 @@ export function Footer() {
                                 {/* Legal Links mapping */}
                                 {siteConfig.footer.legal.map((link) => (
                                     <li key={link.href}>
-                                        <Link href={link.href} className="text-slate-400 hover:text-white transition-colors text-sm font-medium hover:translate-x-1 inline-block border-transparent py-1">
-                                            {link.title}
-                                        </Link>
+                                        {link.href === "#cookie-settings" ? (
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    window.dispatchEvent(new Event('open-cookie-settings'));
+                                                }}
+                                                className="text-slate-400 hover:text-white transition-colors text-sm font-medium hover:translate-x-1 inline-block border-transparent py-1 cursor-pointer bg-transparent text-left"
+                                            >
+                                                {link.title}
+                                            </button>
+                                        ) : (
+                                            <Link href={link.href} className="text-slate-400 hover:text-white transition-colors text-sm font-medium hover:translate-x-1 inline-block border-transparent py-1">
+                                                {link.title}
+                                            </Link>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
