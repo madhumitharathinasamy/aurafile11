@@ -18,6 +18,13 @@ export function CookieConsent() {
   const [adsEnabled, setAdsEnabled] = useState(false);
 
   useEffect(() => {
+    // Event listener for opening settings via Footer or other components
+    const handleOpenCookieSettings = () => {
+      setIsVisible(true);
+      setShowSettings(true);
+    };
+    window.addEventListener("open-cookie-settings", handleOpenCookieSettings);
+
     // Check if consent has already been given or rejected
     const consent = localStorage.getItem("cookie-consent");
     if (!consent) {
@@ -45,6 +52,8 @@ export function CookieConsent() {
         }
       }
     }
+
+    return () => window.removeEventListener("open-cookie-settings", handleOpenCookieSettings);
   }, []);
 
   const updateConsentState = (analytics: boolean, ads: boolean) => {
