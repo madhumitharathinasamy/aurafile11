@@ -2,6 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  compress: true,
+  images: {
+    formats: ['image/avif', 'image/webp'],
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",
@@ -41,6 +45,15 @@ const nextConfig = {
   },
   async headers() {
     return [
+      {
+        source: '/(.*\\.(?:png|jpe?g|svg|ico|webp|avif|woff2?|ttf|eot))',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
       {
         source: "/(.*)",
         headers: [
