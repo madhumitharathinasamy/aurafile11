@@ -23,6 +23,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${post.title} | AuraFile Blog`,
     description: post.excerpt,
+    alternates: {
+      canonical: `https://aurafile.net/blog/${post.slug}`,
+    },
   };
 }
 

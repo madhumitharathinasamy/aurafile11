@@ -9,6 +9,9 @@ export const revalidate = 86400;
 export const metadata: Metadata = {
   title: "Blog | AuraFile - Privacy-First File Tools",
   description: "Read our latest articles on file processing, data privacy, and optimizing your web workflow.",
+  alternates: {
+    canonical: 'https://aurafile.net/blog',
+  },
 };
 
 export default function BlogList() {

@@ -36,8 +36,8 @@ export const siteConfig = {
     footer: {
         copyright: `© ${new Date().getFullYear()} Aura File. All rights reserved.`,
         legal: [
-            { title: "Privacy Policy", href: "/privacy-policy" },
-            { title: "Terms of Service", href: "/terms-of-service" },
+            { title: "Privacy Policy", href: "/privacy" },
+            { title: "Terms of Service", href: "/terms" },
             { title: "Disclaimer", href: "/disclaimer" },
             { title: "Sitemap", href: "/sitemap-html" },
             { title: "About Us", href: "/about" },
