@@ -22,6 +22,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     const excludeDirs = new Set([
         "api",
         "compress-image-dynamic", // We will handle sizes manually
+        "about-us",
+        "privacy-policy",
+        "terms-of-service"
     ]);
 
     let toolSubDirs: string[] = [];

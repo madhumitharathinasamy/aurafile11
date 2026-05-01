@@ -33,6 +33,21 @@ const nextConfig = {
         destination: 'https://aurafile.net/:path*',
         permanent: true,
       },
+      {
+        source: '/privacy-policy',
+        destination: '/privacy',
+        permanent: true,
+      },
+      {
+        source: '/terms-of-service',
+        destination: '/terms',
+        permanent: true,
+      },
+      {
+        source: '/about-us',
+        destination: '/about',
+        permanent: true,
+      },
     ];
   },
   async rewrites() {
